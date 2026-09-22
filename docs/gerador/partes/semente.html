@@ -1,0 +1,97 @@
+<section class="pagina">
+<h1 class="titulo-parte"><span class="parte">Parte IX</span>Dados de demonstração</h1>
+
+<h2 id="sem-porque"><span class="num">35</span>A semente</h2>
+
+<p>O sistema chega à mão da equipe antes de existir dado verdadeiro, e painel
+vazio não ensina nada: ninguém entende um gráfico de arrecadação olhando para
+zero, nem avalia se a tela de financeiro serve quando ela não tem uma linha. A
+semente cria <strong>doze meses de história fictícia</strong>.</p>
+
+<div class="numeros">
+  <div><div class="v">96</div><div class="r">animais</div></div>
+  <div><div class="v">148</div><div class="r">padrinhos</div></div>
+  <div><div class="v">205</div><div class="r">apadrinhamentos</div></div>
+  <div><div class="v">1.278</div><div class="r">contribuições</div></div>
+  <div><div class="v">794</div><div class="r">despesas</div></div>
+  <div><div class="v">964</div><div class="r">registros de saúde</div></div>
+  <div><div class="v">629</div><div class="r">eventos de diário</div></div>
+  <div><div class="v">348</div><div class="r">movimentos de estoque</div></div>
+</div>
+
+<p>Mais 3 campanhas, 12 processos de adoção, 138 notificações, 6 itens de estoque
+e 3 veterinários.</p>
+
+<h3 id="sem-salvaguardas"><span class="num">35.1</span>As duas salvaguardas</h3>
+
+{{cod:seed-salvaguarda|ts|prisma/seed.ts — a trava}}
+
+<ol>
+<li><strong>Se já houver qualquer animal cadastrado, a demonstração não roda.</strong>
+Dado de verdade nunca é sobrescrito. Essa checagem acontece a cada boot do
+container, porque o entrypoint chama a semente sempre.</li>
+<li><strong><code>SEMEAR_DEMONSTRACAO=false</code> desliga de vez.</strong> É o
+interruptor a virar no dia em que o primeiro animal real for cadastrado.</li>
+</ol>
+
+<p>Os <strong>catálogos base</strong> — configuração da ONG e os três acessos de
+equipe — são semeados sempre, de forma idempotente por <code>upsert</code>. Eles
+não são demonstração: são o mínimo para alguém conseguir entrar no sistema.</p>
+
+<h3 id="sem-realismo"><span class="num">35.2</span>Por que os dados são realistas</h3>
+
+<p>Dados fictícios servem para testar a interface, e interface só é testada por
+dados que se parecem com os reais. A semente foi escrita com isso em mente:</p>
+
+<table>
+<thead><tr><th style="width:32%">Característica</th><th>Por quê</th></tr></thead>
+<tbody>
+<tr><td><strong>Gerador determinístico</strong></td><td>Um PRNG linear com semente fixa (20260922). O mesmo abrigo é gerado toda vez; sem isso, cada deploy mostraria números diferentes e ninguém conseguiria conferir se algo quebrou.</td></tr>
+<tr><td><strong>~9% de inadimplência</strong></td><td>Um sistema com 100% de pagamento não exercita a tela de cobrança nem o alerta do painel.</td></tr>
+<tr><td><strong>~12% de cancelamento</strong></td><td>Dá ao gráfico de retenção o que mostrar. Um gráfico de novos × cancelados sem cancelamento não ensina a ler o gráfico.</td></tr>
+<tr><td><strong>Mês corrente parcialmente pago</strong></td><td>62% pago, o resto pendente ou atrasado conforme o vencimento — que é exatamente o estado real de um dia 22.</td></tr>
+<tr><td><strong>Poucas cirurgias caras</strong></td><td>7% dos animais têm um procedimento acima de R$ 1.200. É o que justifica a existência de campanha e o que faz o relatório de concentração de custo ter sentido.</td></tr>
+<tr><td><strong>Histórias de resgate escritas</strong></td><td>Dez textos reais de tom, não <em>lorem ipsum</em>. É esse texto que faz alguém parar o scroll, e testar a vitrine com texto falso não testa nada.</td></tr>
+<tr><td><strong>Coerência temporal</strong></td><td>Nenhum apadrinhamento começa antes do resgate do animal ou do cadastro do padrinho; nenhum cancelamento tem data futura; nenhuma saída de estoque deixa saldo negativo.</td></tr>
+</tbody>
+</table>
+
+<div class="atencao">
+  <span class="rotulo">Sem fotos, e de propósito</span>
+  <p>A semente não cria arquivos de imagem. Os animais aparecem com o
+  <strong>retrato gerado</strong> — gradiente determinístico com a inicial do
+  nome —, o que também serve para validar esse caminho da interface. Os
+  comprovantes fictícios existem como metadado, mas o arquivo não: abrir um deles
+  devolve 404, e é melhor assim — comprovante de mentira não deve abrir como se
+  fosse documento de verdade.</p>
+</div>
+
+<h3 id="sem-acessos"><span class="num">35.3</span>Acessos de demonstração</h3>
+
+<table>
+<thead><tr><th style="width:44%">E-mail</th><th>Papel</th></tr></thead>
+<tbody>
+<tr><td><code>admin@meuaumigo.com.br</code></td><td>Direção — vê financeiro e configurações</td></tr>
+<tr><td><code>rita@meuaumigo.com.br</code></td><td>Equipe</td></tr>
+<tr><td><code>padrinho@meuaumigo.com.br</code></td><td>Área do padrinho</td></tr>
+</tbody>
+</table>
+
+<div class="decisao">
+  <span class="rotulo">A senha não está no código</span>
+  <p>A senha dos três vem de <code>SENHA_DEMO</code>, no <code>.env</code>.
+  Deixando a variável em branco, a semente <strong>sorteia</strong> uma e a
+  imprime uma única vez no log do boot — quem subiu o container a lê com
+  <code>docker compose logs app</code>, e mais ninguém.</p>
+  <p>O motivo é direto: o repositório é público, e senha de administrador
+  versionada é senha de administrador publicada. Vale a mesma regra para o
+  <code>.env.example</code>, que vai para o Git.</p>
+</div>
+
+<div class="atencao">
+  <span class="rotulo">Antes de expor o sistema</span>
+  <p>Troque as senhas dos três acessos, pela tela de configurações ou por
+  <code>scripts/criar-usuario.ts</code>. Uma senha sorteada no boot é melhor do
+  que uma senha publicada, mas continua sendo uma senha de demonstração.</p>
+</div>
+</section>

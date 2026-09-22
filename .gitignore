@@ -1,0 +1,16 @@
+# Dependências e build
+node_modules/
+.next/
+*.tsbuildinfo
+
+# Segredos — o .env.example é o modelo versionado; o .env, nunca
+.env
+.env.local
+.env.*.local
+
+# Mídia enviada pela equipe (fotos dos animais, comprovantes)
+storage/
+
+# Sistema
+*.log
+.DS_Store

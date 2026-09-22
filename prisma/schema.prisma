@@ -1,0 +1,728 @@
+// ==========================================================
+// Meu AUmigo — modelo de dados.
+//
+// Três eixos, e o sistema inteiro gira em torno de amarrá-los:
+//   ANIMAL    — a história, a saúde, o custo real de manter cada um.
+//   PADRINHO  — quem sustenta esse custo, e o que ele vê em troca.
+//   ONG       — quem cuida, gasta e presta contas.
+//
+// A regra que decide o schema: todo real que entra e todo real que sai
+// deve conseguir apontar para UM animal. É isso que permite dizer ao
+// padrinho "os seus R$ 100 deste mês viraram isto", em vez de
+// "obrigado pela contribuição".
+// ==========================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ----------------------------------------------------------
+// Pessoas e acesso
+// ----------------------------------------------------------
+
+enum PapelUsuario {
+  ADMIN // direção da ONG: vê financeiro inteiro e configurações
+  EQUIPE // cuidadores: animais, saúde, alimentação, campanhas
+  VETERINARIO // registra atendimento clínico
+  PADRINHO // só a própria área
+}
+
+model Usuario {
+  id        String       @id @default(cuid())
+  nome      String
+  email     String       @unique
+  senhaHash String
+  papel     PapelUsuario @default(EQUIPE)
+  telefone  String?
+  ativo     Boolean      @default(true)
+
+  criadoEm     DateTime  @default(now())
+  atualizadoEm DateTime  @updatedAt
+  deletadoEm   DateTime?
+
+  padrinho      Padrinho?
+  sessoes       SessaoLogin[]
+  auditorias    LogAuditoria[]
+  atualizacoes  AtualizacaoAnimal[]
+  eventosDiario EventoDiario[]
+
+  @@index([papel, ativo])
+  @@map("usuarios")
+}
+
+model SessaoLogin {
+  id        String    @id @default(cuid())
+  usuarioId String
+  tokenHash String    @unique
+  expiraEm  DateTime
+  revogadaEm DateTime?
+  ip        String?
+  userAgent String?
+  criadaEm  DateTime  @default(now())
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([usuarioId])
+  @@index([expiraEm])
+  @@map("sessoes_login")
+}
+
+/// Append-only. O papel da app não recebe UPDATE nem DELETE aqui
+/// (ver prisma/sql/grants.sql): dinheiro de terceiro exige log que o
+/// próprio sistema não consiga reescrever.
+model LogAuditoria {
+  id         String   @id @default(cuid())
+  usuarioId  String?
+  acao       String
+  entidade   String
+  entidadeId String?
+  detalhe    Json?
+  ip         String?
+  criadoEm   DateTime @default(now())
+
+  usuario Usuario? @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+
+  @@index([entidade, entidadeId])
+  @@index([criadoEm])
+  @@map("logs_auditoria")
+}
+
+model Padrinho {
+  id        String  @id @default(cuid())
+  usuarioId String? @unique
+  nome      String
+  email     String  @unique
+  telefone  String?
+  documento String? // CPF, para recibo de doação
+  cidade    String?
+  estado    String?
+
+  /// Quer receber novidade dos animais que apadrinha.
+  aceitaNotificacao Boolean @default(true)
+  /// Aparece publicamente na lista de padrinhos do animal.
+  perfilPublico     Boolean @default(false)
+  observacoes       String?
+
+  desde        DateTime  @default(now())
+  criadoEm     DateTime  @default(now())
+  atualizadoEm DateTime  @updatedAt
+  deletadoEm   DateTime?
+
+  usuario         Usuario?         @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+  apadrinhamentos Apadrinhamento[]
+  contribuicoes   Contribuicao[]
+  notificacoes    Notificacao[]
+
+  @@index([nome])
+  @@map("padrinhos")
+}
+
+// ----------------------------------------------------------
+// Animal
+// ----------------------------------------------------------
+
+enum Especie {
+  CANINA
+  FELINA
+  OUTRA
+}
+
+enum Sexo {
+  MACHO
+  FEMEA
+  NAO_INFORMADO
+}
+
+enum Porte {
+  PEQUENO
+  MEDIO
+  GRANDE
+}
+
+enum StatusAnimal {
+  EM_TRATAMENTO
+  DISPONIVEL_ADOCAO
+  EM_PROCESSO_ADOCAO
+  ADOTADO
+  INDISPONIVEL
+  FALECIDO
+}
+
+model Animal {
+  id   String @id @default(cuid())
+  /// Usado na URL pública: /animais/thor. É o link que vai para o WhatsApp.
+  slug String @unique
+  nome String
+
+  especie Especie @default(CANINA)
+  sexo    Sexo    @default(NAO_INFORMADO)
+  porte   Porte   @default(MEDIO)
+  raca    String?
+  pelagem String?
+
+  dataNascimento   DateTime?
+  /// Quando não há data de nascimento — quase sempre, em animal resgatado.
+  idadeAproximada  String?
+  dataResgate      DateTime
+  localResgate     String?
+  /// O texto que faz alguém parar o scroll. Fica na página pública.
+  historiaResgate  String?
+  personalidade    String?
+
+  castrado             Boolean @default(false)
+  vacinasEmDia         Boolean @default(false)
+  necessidadeEspecial  Boolean @default(false)
+  descricaoNecessidade String?
+
+  status      StatusAnimal @default(EM_TRATAMENTO)
+  localAbrigo String?
+  pesoAtualKg Decimal?     @db.Decimal(6, 3)
+
+  /// Custo mensal estimado — é a base do "falta R$ X" na página pública.
+  /// Estimativa da ONG, revisada à mão; o gasto real vive em Despesa.
+  custoAlimentacao Decimal @default(0) @db.Decimal(10, 2)
+  custoTratamento  Decimal @default(0) @db.Decimal(10, 2)
+  custoMedicamento Decimal @default(0) @db.Decimal(10, 2)
+
+  /// Sobe para o topo da vitrine pública.
+  destaque Boolean @default(false)
+  /// Sai da vitrine sem apagar o histórico (adotado, falecido, transferido).
+  ativo    Boolean @default(true)
+
+  fotoCapaId String? @unique
+
+  criadoEm     DateTime  @default(now())
+  atualizadoEm DateTime  @updatedAt
+  deletadoEm   DateTime?
+
+  fotoCapa        Foto?               @relation("capa", fields: [fotoCapaId], references: [id], onDelete: SetNull)
+  fotos           Foto[]              @relation("galeria")
+  eventosDiario   EventoDiario[]
+  registrosSaude  RegistroSaude[]
+  apadrinhamentos Apadrinhamento[]
+  contribuicoes   Contribuicao[]
+  despesas        Despesa[]
+  campanhas       Campanha[]
+  adocoes         Adocao[]
+  atualizacoes    AtualizacaoAnimal[]
+  movimentos      MovimentoEstoque[]
+  notificacoes    Notificacao[]
+
+  @@index([status, ativo])
+  @@index([especie, porte])
+  @@index([nome])
+  @@map("animais")
+}
+
+enum TipoMidia {
+  FOTO
+  VIDEO
+}
+
+model Foto {
+  id       String    @id @default(cuid())
+  animalId String
+  tipo     TipoMidia @default(FOTO)
+  /// Nome do arquivo dentro de STORAGE_DIR/animais. Nunca caminho absoluto:
+  /// o volume pode ser remontado em outro ponto.
+  arquivo  String
+  mimeType String
+  bytes    Int
+  legenda  String?
+  /// Ordem na galeria pública.
+  ordem    Int       @default(0)
+  criadaEm DateTime  @default(now())
+
+  animal      Animal        @relation("galeria", fields: [animalId], references: [id], onDelete: Cascade)
+  capaDe      Animal?       @relation("capa")
+  atualizacao AtualizacaoAnimal[]
+  evento      EventoDiario[]
+
+  @@index([animalId, ordem])
+  @@map("fotos")
+}
+
+enum TipoEventoDiario {
+  RESGATE
+  CONSULTA
+  TRATAMENTO
+  MELHORA
+  PASSEIO
+  APADRINHAMENTO
+  VACINA
+  CASTRACAO
+  ADOCAO
+  ANIVERSARIO
+  OUTRO
+}
+
+/// A linha do tempo do animal. É o que transforma um cadastro em história.
+/// Alguns eventos nascem de ações do sistema (primeiro apadrinhamento,
+/// castração registrada); outros a equipe escreve à mão.
+model EventoDiario {
+  id          String           @id @default(cuid())
+  animalId    String
+  tipo        TipoEventoDiario @default(OUTRO)
+  data        DateTime
+  titulo      String
+  descricao   String?
+  fotoId      String?
+  /// Evento gerado pelo sistema não é editável pela equipe.
+  automatico  Boolean          @default(false)
+  /// Fora da página pública (detalhe clínico duro, por exemplo).
+  interno     Boolean          @default(false)
+  autorId     String?
+  criadoEm    DateTime         @default(now())
+
+  animal Animal   @relation(fields: [animalId], references: [id], onDelete: Cascade)
+  foto   Foto?    @relation(fields: [fotoId], references: [id], onDelete: SetNull)
+  autor  Usuario? @relation(fields: [autorId], references: [id], onDelete: SetNull)
+
+  @@index([animalId, data])
+  @@map("eventos_diario")
+}
+
+/// "Como o Thor está?" — o recado que vai para quem apadrinha.
+/// Separado do diário de propósito: o diário é a biografia pública;
+/// isto é a carta ao padrinho, e dispara notificação.
+model AtualizacaoAnimal {
+  id        String   @id @default(cuid())
+  animalId  String
+  titulo    String
+  texto     String
+  fotoId    String?
+  /// Visível também na página pública, não só para os padrinhos.
+  publica   Boolean  @default(false)
+  autorId   String?
+  criadaEm  DateTime @default(now())
+
+  animal Animal   @relation(fields: [animalId], references: [id], onDelete: Cascade)
+  foto   Foto?    @relation(fields: [fotoId], references: [id], onDelete: SetNull)
+  autor  Usuario? @relation(fields: [autorId], references: [id], onDelete: SetNull)
+
+  @@index([animalId, criadaEm])
+  @@map("atualizacoes_animal")
+}
+
+// ----------------------------------------------------------
+// Saúde
+// ----------------------------------------------------------
+
+enum TipoRegistroSaude {
+  CONSULTA
+  VACINA
+  VERMIFUGO
+  CASTRACAO
+  EXAME
+  CIRURGIA
+  MEDICAMENTO
+  PESAGEM
+  ALERGIA
+  DOENCA
+  OUTRO
+}
+
+model Veterinario {
+  id       String  @id @default(cuid())
+  nome     String
+  crmv     String?
+  clinica  String?
+  telefone String?
+  ativo    Boolean @default(true)
+
+  registros RegistroSaude[]
+
+  @@map("veterinarios")
+}
+
+model RegistroSaude {
+  id            String            @id @default(cuid())
+  animalId      String
+  tipo          TipoRegistroSaude
+  data          DateTime
+  titulo        String
+  descricao     String?
+  /// Custo do evento clínico. Alimenta o histórico médico com valores e o
+  /// ranking de animais mais caros do mês.
+  valor         Decimal?          @db.Decimal(10, 2)
+  /// Peso em kg, quando tipo = PESAGEM. Alimenta a curva de peso.
+  pesoKg        Decimal?          @db.Decimal(6, 3)
+  /// Retorno, próxima dose de vacina, fim do tratamento.
+  proximaData   DateTime?
+  medicamento   String?
+  dosagem       String?
+  veterinarioId String?
+  criadoEm      DateTime          @default(now())
+
+  animal      Animal       @relation(fields: [animalId], references: [id], onDelete: Cascade)
+  veterinario Veterinario? @relation(fields: [veterinarioId], references: [id], onDelete: SetNull)
+  despesa     Despesa?
+
+  @@index([animalId, data])
+  @@index([tipo, data])
+  @@index([proximaData])
+  @@map("registros_saude")
+}
+
+// ----------------------------------------------------------
+// Apadrinhamento e dinheiro que entra
+// ----------------------------------------------------------
+
+enum ModalidadeApadrinhamento {
+  ALIMENTACAO // R$ 30 — ajuda com a ração
+  CUIDADOS // R$ 50 — alimentação + cuidados
+  COMPLETO // R$ 100 — apadrinhamento completo
+  PERSONALIZADO // o padrinho escolhe o valor
+}
+
+enum StatusApadrinhamento {
+  ATIVO
+  PAUSADO
+  CANCELADO
+}
+
+model Apadrinhamento {
+  id          String                   @id @default(cuid())
+  padrinhoId  String
+  animalId    String
+  modalidade  ModalidadeApadrinhamento @default(COMPLETO)
+  valorMensal Decimal                  @db.Decimal(10, 2)
+  status      StatusApadrinhamento     @default(ATIVO)
+  diaVencimento Int                    @default(10)
+  inicio      DateTime                 @default(now())
+  fim         DateTime?
+  motivoCancelamento String?
+  /// O padrinho autoriza aparecer no perfil público do animal.
+  exibirNoPerfil Boolean               @default(true)
+
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  padrinho      Padrinho       @relation(fields: [padrinhoId], references: [id], onDelete: Cascade)
+  animal        Animal         @relation(fields: [animalId], references: [id], onDelete: Cascade)
+  contribuicoes Contribuicao[]
+
+  /// Um padrinho pode voltar a apadrinhar o mesmo animal depois de cancelar,
+  /// então a unicidade não é (padrinho, animal) — é só o índice de consulta.
+  @@index([padrinhoId, status])
+  @@index([animalId, status])
+  @@map("apadrinhamentos")
+}
+
+enum StatusContribuicao {
+  PENDENTE
+  PAGA
+  ATRASADA
+  CANCELADA
+}
+
+enum MetodoPagamento {
+  PIX
+  CARTAO
+  BOLETO
+  TRANSFERENCIA
+  DINHEIRO
+  OUTRO
+}
+
+enum OrigemContribuicao {
+  APADRINHAMENTO
+  DOACAO_AVULSA
+  CAMPANHA
+}
+
+/// Todo real que entra. Mensalidade de apadrinhamento, doação avulsa ou
+/// aporte de campanha — as três passam por aqui, para que o total do mês
+/// seja uma soma só e a transparência não tenha buraco.
+model Contribuicao {
+  id               String             @id @default(cuid())
+  origem           OrigemContribuicao @default(APADRINHAMENTO)
+  apadrinhamentoId String?
+  padrinhoId       String?
+  /// Preenchido também na doação avulsa dirigida a um animal específico.
+  animalId         String?
+  campanhaId       String?
+
+  valor       Decimal            @db.Decimal(10, 2)
+  status      StatusContribuicao @default(PENDENTE)
+  metodo      MetodoPagamento?
+  /// Mês de referência, sempre no dia 1. É por ele que o financeiro fecha,
+  /// não pela data de pagamento — quem paga atrasado paga o mês certo.
+  competencia DateTime
+  vencimento  DateTime?
+  pagoEm      DateTime?
+  /// Identificador do PIX/boleto no extrato, para conciliar.
+  referencia  String?
+  observacao  String?
+  /// Doação de quem não quer aparecer no mural.
+  anonima     Boolean            @default(false)
+  /// Nome de quem doou sem cadastro de padrinho.
+  nomeDoador  String?
+
+  criadaEm DateTime @default(now())
+
+  apadrinhamento Apadrinhamento? @relation(fields: [apadrinhamentoId], references: [id], onDelete: SetNull)
+  padrinho       Padrinho?       @relation(fields: [padrinhoId], references: [id], onDelete: SetNull)
+  animal         Animal?         @relation(fields: [animalId], references: [id], onDelete: SetNull)
+  campanha       Campanha?       @relation(fields: [campanhaId], references: [id], onDelete: SetNull)
+
+  @@index([competencia, status])
+  @@index([animalId, competencia])
+  @@index([padrinhoId, competencia])
+  @@index([status, vencimento])
+  @@map("contribuicoes")
+}
+
+// ----------------------------------------------------------
+// Dinheiro que sai
+// ----------------------------------------------------------
+
+enum CategoriaDespesa {
+  VETERINARIO
+  ALIMENTACAO
+  MEDICAMENTO
+  HIGIENE
+  TRANSPORTE
+  ESTRUTURA
+  OUTRO
+}
+
+model Despesa {
+  id        String           @id @default(cuid())
+  categoria CategoriaDespesa
+  /// Nulo quando é despesa do abrigo inteiro (luz, aluguel, ração a granel).
+  /// O rateio por animal acontece no relatório, não aqui.
+  animalId  String?
+  descricao String
+  valor     Decimal          @db.Decimal(10, 2)
+  data      DateTime
+  fornecedor String?
+  /// Fecha o ciclo com o histórico médico: a consulta vira despesa.
+  registroSaudeId String?    @unique
+
+  criadaEm DateTime @default(now())
+
+  animal        Animal?        @relation(fields: [animalId], references: [id], onDelete: SetNull)
+  registroSaude RegistroSaude? @relation(fields: [registroSaudeId], references: [id], onDelete: SetNull)
+  comprovantes  Comprovante[]
+
+  @@index([data, categoria])
+  @@index([animalId, data])
+  @@map("despesas")
+}
+
+enum TipoComprovante {
+  NOTA_FISCAL
+  RECIBO
+  CUPOM
+  CONTRATO
+  OUTRO
+}
+
+/// O que sustenta a aba de transparência. `publico` é a chave: a ONG
+/// escolhe o que o padrinho vê, sem abrir a contabilidade inteira.
+model Comprovante {
+  id        String          @id @default(cuid())
+  despesaId String
+  tipo      TipoComprovante @default(RECIBO)
+  titulo    String
+  arquivo   String
+  mimeType  String
+  bytes     Int
+  publico   Boolean         @default(true)
+  criadoEm  DateTime        @default(now())
+
+  despesa Despesa @relation(fields: [despesaId], references: [id], onDelete: Cascade)
+
+  @@index([despesaId])
+  @@map("comprovantes")
+}
+
+// ----------------------------------------------------------
+// Estoque (ração e insumos)
+// ----------------------------------------------------------
+
+enum TipoItemEstoque {
+  RACAO
+  MEDICAMENTO
+  HIGIENE
+  OUTRO
+}
+
+model ItemEstoque {
+  id       String          @id @default(cuid())
+  nome     String
+  tipo     TipoItemEstoque @default(RACAO)
+  unidade  String          @default("kg")
+  /// Saldo atual. Mantido pelos movimentos, não digitado à mão.
+  saldo    Decimal         @default(0) @db.Decimal(10, 3)
+  /// Abaixo disto o painel acende o alerta de reposição.
+  minimo   Decimal         @default(0) @db.Decimal(10, 3)
+  ativo    Boolean         @default(true)
+  criadoEm DateTime        @default(now())
+
+  movimentos MovimentoEstoque[]
+
+  @@map("itens_estoque")
+}
+
+enum TipoMovimentoEstoque {
+  ENTRADA
+  SAIDA
+  PERDA
+  AJUSTE
+}
+
+model MovimentoEstoque {
+  id         String               @id @default(cuid())
+  itemId     String
+  tipo       TipoMovimentoEstoque
+  quantidade Decimal              @db.Decimal(10, 3)
+  valor      Decimal?             @db.Decimal(10, 2)
+  fornecedor String?
+  /// Saída dirigida a um animal específico (ração medicamentosa, por exemplo).
+  animalId   String?
+  data       DateTime
+  observacao String?
+  criadoEm   DateTime             @default(now())
+
+  item   ItemEstoque @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  animal Animal?     @relation(fields: [animalId], references: [id], onDelete: SetNull)
+
+  @@index([itemId, data])
+  @@map("movimentos_estoque")
+}
+
+// ----------------------------------------------------------
+// Campanhas de emergência
+// ----------------------------------------------------------
+
+enum StatusCampanha {
+  RASCUNHO
+  ATIVA
+  CONCLUIDA
+  ENCERRADA
+}
+
+model Campanha {
+  id        String         @id @default(cuid())
+  slug      String         @unique
+  titulo    String
+  /// A campanha pode ser do abrigo (reforma do canil) e não de um animal.
+  animalId  String?
+  resumo    String
+  texto     String?
+  meta      Decimal        @db.Decimal(10, 2)
+  prazo     DateTime?
+  status    StatusCampanha @default(RASCUNHO)
+  urgente   Boolean        @default(false)
+  criadaEm  DateTime       @default(now())
+  encerradaEm DateTime?
+
+  animal        Animal?        @relation(fields: [animalId], references: [id], onDelete: SetNull)
+  contribuicoes Contribuicao[]
+
+  @@index([status, urgente])
+  @@map("campanhas")
+}
+
+// ----------------------------------------------------------
+// Adoção
+// ----------------------------------------------------------
+
+enum StatusAdocao {
+  INTERESSE
+  ENTREVISTA
+  VISITA
+  APROVADA
+  CONCLUIDA
+  RECUSADA
+  DESISTENCIA
+}
+
+model Adocao {
+  id       String       @id @default(cuid())
+  animalId String
+  status   StatusAdocao @default(INTERESSE)
+
+  adotanteNome     String
+  adotanteEmail    String?
+  adotanteTelefone String?
+  adotanteCidade   String?
+  /// Respostas do formulário público de interesse.
+  respostas        Json?
+  observacoes      String?
+
+  abertaEm     DateTime  @default(now())
+  concluidaEm  DateTime?
+  /// Visita de acompanhamento pós-adoção.
+  proximoContato DateTime?
+
+  animal Animal @relation(fields: [animalId], references: [id], onDelete: Cascade)
+
+  @@index([animalId, status])
+  @@index([status, abertaEm])
+  @@map("adocoes")
+}
+
+// ----------------------------------------------------------
+// Notificações
+// ----------------------------------------------------------
+
+enum TipoNotificacao {
+  ATUALIZACAO_ANIMAL
+  APADRINHAMENTO_CONFIRMADO
+  PAGAMENTO_PENDENTE
+  ANIVERSARIO
+  CONQUISTA
+  CAMPANHA
+  ADOCAO
+  OUTRO
+}
+
+model Notificacao {
+  id         String          @id @default(cuid())
+  padrinhoId String
+  animalId   String?
+  tipo       TipoNotificacao @default(OUTRO)
+  titulo     String
+  corpo      String
+  link       String?
+  lidaEm     DateTime?
+  criadaEm   DateTime        @default(now())
+
+  padrinho Padrinho @relation(fields: [padrinhoId], references: [id], onDelete: Cascade)
+  animal   Animal?  @relation(fields: [animalId], references: [id], onDelete: SetNull)
+
+  @@index([padrinhoId, lidaEm])
+  @@map("notificacoes")
+}
+
+// ----------------------------------------------------------
+// Configuração da ONG (linha única)
+// ----------------------------------------------------------
+
+model ConfiguracaoOng {
+  id        String  @id @default("unica")
+  nome      String  @default("Meu AUmigo")
+  cnpj      String?
+  email     String?
+  telefone  String?
+  whatsapp  String?
+  cidade    String?
+  estado    String?
+  sobre     String?
+  chavePix  String?
+  instagram String?
+  /// Aparece no rodapé público e nos textos de compartilhamento.
+  frase     String  @default("Você apadrinha. A gente cuida. E um AUmigo ganha uma nova chance.")
+
+  atualizadoEm DateTime @updatedAt
+
+  @@map("configuracao_ong")
+}

@@ -1,0 +1,154 @@
+<section class="pagina">
+<h1 class="titulo-parte"><span class="parte">Parte VI</span>Interface e sistema de design</h1>
+
+<h2 id="ui-paleta"><span class="num">25</span>Paleta e tipografia</h2>
+
+<p>Os dois tons âncora foram <strong>amostrados da logo oficial</strong>, não
+estimados: o petróleo do lettering (<code>#0a292b</code>) e o laranja do coração
+(<code>#ed9216</code>). O restante da escala foi derivado deles.</p>
+
+{{cod:tailwind-cores|ts|tailwind.config.ts — as duas escalas da marca}}
+
+<div class="decisao">
+  <span class="rotulo">Regra da marca</span>
+  <p>O <strong>petróleo carrega estrutura e texto</strong>; o <strong>laranja
+  carrega afeto e ação</strong>. Laranja aparece em botão de doar, em barra de
+  meta e em número de arrecadação — e em mais nada. Quando tudo é laranja, nada
+  é, e o botão que precisa converter perde a vez.</p>
+</div>
+
+<p>Complementam a paleta uma escala neutra (<code>tinta</code>,
+<code>tinta-suave</code>, <code>tinta-clara</code>, <code>tinta-borda</code>,
+<code>tinta-fundo</code>) e três cores de estado: <code>alerta</code>,
+<code>risco</code> e <code>seguro</code>.</p>
+
+<p>A tipografia é a pilha do sistema operacional, sem fonte externa. O motivo é
+concreto: a página pública do animal é aberta a partir de um link do WhatsApp,
+quase sempre no celular e muitas vezes em 4G ruim. Uma fonte remota adiciona uma
+rodada de rede antes do primeiro texto legível.</p>
+
+<h2 id="ui-componentes"><span class="num">26</span>Componentes</h2>
+
+<h3 id="ui-classes"><span class="num">26.1</span>Classes de componente</h3>
+
+<p>Oito classes em <code>globals.css</code> concentram o vocabulário visual:
+<code>.cartao</code>, <code>.campo</code>, <code>.rotulo</code>,
+<code>.botao</code> com quatro variantes (<code>-doar</code>,
+<code>-primario</code>, <code>-secundario</code>, <code>-fantasma</code>),
+<code>.selo</code>, <code>.titulo-seccao</code>, <code>.esqueleto</code> e
+<code>.patinhas</code>.</p>
+
+<p>Dois detalhes de toque valem registro. Os botões têm altura mínima de 44 px —
+o alvo abaixo disso erra no celular, e o app é usado em pé, com uma mão, às vezes
+com o animal no colo. E todos trazem <code>touch-action: manipulation</code>:
+sem isso o navegador espera 300 ms para saber se foi duplo-toque, e o aplicativo
+parece lento mesmo respondendo na hora.</p>
+
+<h3 id="ui-peças"><span class="num">26.2</span>Peças compartilhadas</h3>
+
+<table>
+<thead><tr><th style="width:26%">Componente</th><th>Papel</th></tr></thead>
+<tbody>
+<tr><td><code>BarraMeta</code></td><td>A peça mais repetida do produto: vitrine, perfil, campanha, painel e área do padrinho. Tem <code>role="progressbar"</code> com valores ARIA, e <strong>o texto acompanha sempre a barra</strong> — quem não distingue a cor, quem imprime em preto e branco e quem usa leitor de tela leem o mesmo número. Barra sem número é decoração.</td></tr>
+<tr><td><code>Indicador</code></td><td>Número grande com rótulo. Usa <code>tabular-nums</code> para que uma fila de cartões não dance quando os números mudarem de largura.</td></tr>
+<tr><td><code>FotoAnimal</code> / <code>RetratoGerado</code></td><td>Foto real ou, enquanto ela não existe, um retrato SVG gerado a partir do nome — gradiente determinístico, patinha deslocada e inicial. A vitrine é a captação da ONG, e um cartão cinza no meio da grade mata a fileira inteira.</td></tr>
+<tr><td><code>Navegacao</code></td><td>Coluna no desktop; no celular, uma tira rolável de pílulas. Não é barra inferior de cinco abas porque a administração tem doze destinos — cortar para cinco e esconder sete num “mais” seria pior do que deixar rolar.</td></tr>
+<tr><td><code>Link</code></td><td>Envolve o <code>next/link</code> e acrescenta um fio de progresso via <code>useLinkStatus</code>. Numa lista de noventa animais cada navegação é uma ida ao servidor; sem sinal nenhum, o toque parece não ter funcionado e a pessoa toca de novo.</td></tr>
+<tr><td><code>Compartilhar</code></td><td>Usa <code>navigator.share</code> no celular — que é o caminho real: a pessoa abre o link, gosta, manda no grupo da família. No desktop copia a mensagem pronta, com texto e não só a URL, porque link solto no WhatsApp não convence ninguém. Se a área de transferência falhar, abre o WhatsApp Web com a mensagem montada.</td></tr>
+</tbody>
+</table>
+
+<h2 id="ui-movimento"><span class="num">27</span>Movimento e acessibilidade</h2>
+
+<p>Duas curvas de animação no sistema inteiro, e só duas: <strong>entrada
+desacelera</strong> (o elemento chega e para) e <strong>saída acelera</strong>
+(some sem pedir atenção). Mais do que isso vira sotaque inconsistente.</p>
+
+<p>Seis animações nomeadas cobrem todo o movimento: <code>sobe</code>,
+<code>entra-tela</code>, <code>brilho</code> (esqueleto de carregamento),
+<code>barra-rota</code>, <code>enche</code> (a barra de meta crescendo da
+esquerda) e <code>batida</code>.</p>
+
+<p>A barra de progresso da rota nunca chega a 100% sozinha — vai até 94% e para.
+Quem a fecha é a tela nova entrando. Uma barra que completa e continua esperando
+mente para o usuário.</p>
+
+<div class="nota">
+  <span class="rotulo">prefers-reduced-motion</span>
+  <p>A regra que desliga o movimento é a <strong>última</strong> do
+  <code>globals.css</code>, de propósito, para vencer tudo que está acima —
+  inclusive a barra de meta, que é a animação mais insistente do sistema. Quem
+  pediu menos movimento recebe menos movimento: trocar acessibilidade por
+  acabamento não se paga.</p>
+</div>
+
+<p>Outras garantias de acessibilidade: <code>aria-current</code> nos itens de
+navegação ativos, <code>role="status"</code> nos avisos e contagens de resultado,
+rótulo associado a todo campo de formulário, <code>viewport</code> sem
+<code>maximumScale</code> (quem quiser ampliar a foto do animal precisa poder) e
+área segura do iPhone respeitada no rodapé.</p>
+
+<h2 id="ui-graficos"><span class="num">28</span>Gráficos</h2>
+
+<p>Quatro formas, escritas à mão em SVG: barras agrupadas, linha com área, rosca
+e medidor. Cerca de 500 linhas em <code>src/components/Graficos.tsx</code>,
+contra as dezenas de kB de JavaScript que qualquer biblioteca traria para o
+celular de quem só quer ver quanto entrou no mês.</p>
+
+<h3 id="ui-paleta-grafico"><span class="num">28.1</span>A paleta categórica, validada</h3>
+
+{{cod:paleta|ts|src/lib/paleta.ts}}
+
+<p>Os quatro tons não foram escolhidos por gosto. Passaram por um validador de
+paleta que confere faixa de luminosidade, piso de croma, separação em três tipos
+de daltonismo e contraste contra a superfície. O resultado:</p>
+
+<table>
+<thead><tr><th style="width:36%">Verificação</th><th style="width:16%">Resultado</th><th>Medida</th></tr></thead>
+<tbody>
+<tr><td>Faixa de luminosidade</td><td><strong>passa</strong></td><td>os 4 tons dentro de L 0,43–0,77</td></tr>
+<tr><td>Piso de croma</td><td><strong>passa</strong></td><td>todos ≥ 0,1 — nenhum lê como cinza</td></tr>
+<tr><td>Separação em daltonismo</td><td><strong>passa</strong></td><td>pior par adjacente ΔE 13,1 em deuteranopia</td></tr>
+<tr><td>Piso de visão normal</td><td><strong>passa</strong></td><td>pior par adjacente ΔE 22,3</td></tr>
+<tr><td>Contraste com o fundo</td><td><em>aviso</em></td><td>laranja 2,61:1 e verde 2,98:1 — abaixo de 3:1</td></tr>
+</tbody>
+</table>
+
+<div class="decisao">
+  <span class="rotulo">Como o aviso de contraste é compensado</span>
+  <p>O aviso não é dispensável: ele obriga um alívio. Por isso <strong>todo
+  gráfico do sistema traz legenda com rótulo em texto e uma tabela equivalente
+  logo abaixo</strong>, recolhida num <code>&lt;details&gt;</code> chamado “ver os
+  números”. Cor nunca é a única forma de ler um número aqui — o que atende
+  leitor de tela, impressão em preto e branco e quem só quer o valor exato.</p>
+</div>
+
+<h3 id="ui-marcas"><span class="num">28.2</span>Anatomia das marcas</h3>
+
+<ul>
+<li><strong>Grade recessiva</strong>: três ou quatro linhas, 1 px, cor de borda.
+Ela orienta, não decora.</li>
+<li><strong>Folga entre marcas</strong>: 2 unidades entre barras vizinhas e entre
+fatias da rosca. Sem isso, duas cores encostadas viram uma só à distância.</li>
+<li><strong>Anel branco</strong> no ponto ativo da linha, para que ele sobreviva
+por cima da área preenchida.</li>
+<li><strong>Alvo de mouse maior que a marca</strong>: o retângulo transparente
+cobre a coluna inteira, para que o balão não pisque entre uma barra e outra.</li>
+<li><strong>Regra do eixo único</strong>: nunca dois eixos y no mesmo gráfico.
+Quando as grandezas têm escalas diferentes, viram dois gráficos.</li>
+<li><strong>Cor segue a entidade, não a posição</strong>: “arrecadado” é sempre
+laranja e “despesas” é sempre petróleo, em toda tela onde aparecem.</li>
+</ul>
+
+<h3 id="ui-onde"><span class="num">28.3</span>Onde cada forma aparece</h3>
+
+<table>
+<thead><tr><th style="width:24%">Forma</th><th>Uso</th></tr></thead>
+<tbody>
+<tr><td><code>GraficoBarras</code></td><td>Arrecadação × despesas (painel, financeiro, impacto); custeio por categoria; novos × cancelados; cobrado × recebido.</td></tr>
+<tr><td><code>GraficoLinha</code></td><td>Evolução de uma grandeza só, com área e cursor.</td></tr>
+<tr><td><code>GraficoDonut</code></td><td>Composição das despesas do mês e receita por modalidade. A legenda traz valor e percentual, porque rótulo dentro da fatia, a 40 px de raio, viraria sopa de letras.</td></tr>
+<tr><td><code>Medidor</code></td><td>Estoque de cada item. O teto é o dobro do mínimo — com o teto no próprio mínimo, qualquer estoque saudável encostaria em 100% e a barra pararia de informar.</td></tr>
+</tbody>
+</table>
+</section>

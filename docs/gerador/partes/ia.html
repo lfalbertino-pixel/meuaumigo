@@ -1,0 +1,61 @@
+<section class="pagina">
+<h1 class="titulo-parte"><span class="parte">Parte VII</span>Meu AUmigo AI</h1>
+
+<h2 id="ia-papel"><span class="num">29</span>O assistente interno</h2>
+
+<p>Uma tela de conversa em <code>/ia</code>, exclusiva da equipe, que usa a API
+da Claude para quatro tipos de tarefa: <strong>resumir</strong> (histórico
+médico, situação do mês), <strong>analisar</strong> (onde a despesa cresceu,
+quais animais concentram custo), <strong>escrever</strong> (atualização para
+padrinhos, texto de campanha, post de Instagram, prestação de contas) e
+<strong>responder</strong> perguntas sobre os dados já cadastrados.</p>
+
+<h3 id="ia-limites"><span class="num">29.1</span>O que ela não faz</h3>
+
+<table>
+<thead><tr><th style="width:34%">Limite</th><th>Como é imposto</th></tr></thead>
+<tbody>
+<tr><td><strong>Não publica nada</strong></td><td>A tela devolve texto para copiar; não há botão de enviar ao padrinho. Todo texto passa pela equipe antes de virar comunicação.</td></tr>
+<tr><td><strong>Não consulta o banco sozinha</strong></td><td>Não recebe ferramenta de leitura. Vê apenas o resumo montado no servidor, de tamanho conhecido — o que dá custo previsível e evita que uma pergunta malformada varra a base.</td></tr>
+<tr><td><strong>Não dá orientação clínica</strong></td><td>Proibição explícita no prompt de sistema. Dose, diagnóstico e tratamento são do veterinário responsável.</td></tr>
+<tr><td><strong>Não compromete a ONG</strong></td><td>Proibida de escrever garantias, promessas de devolução ou compromisso de data em nome da organização.</td></tr>
+<tr><td><strong>Não é caminho crítico</strong></td><td>Sem <code>ANTHROPIC_API_KEY</code>, a tela mostra um aviso de “não configurado” e <strong>todo o resto do sistema funciona igual</strong>. A flag <code>iaDisponivel</code> é derivada no boot.</td></tr>
+</tbody>
+</table>
+
+<h3 id="ia-contexto"><span class="num">29.2</span>O contexto enviado</h3>
+
+{{cod:ia-contexto|ts|src/server/ia/contexto.ts — montagem do retrato}}
+
+<p>O retrato reúne, em texto: os animais ativos com status, custo, cobertura e
+número de padrinhos; o financeiro do mês (arrecadado, despesas por categoria,
+valores em aberto); as maiores despesas por animal; as campanhas ativas com meta
+e arrecadado; e o estoque com marcação de item abaixo do mínimo.</p>
+
+<div class="nota">
+  <span class="rotulo">Privacidade</span>
+  <p>Nome, e-mail, telefone e documento de padrinho <strong>não entram no
+  contexto</strong>. Nomes de animais e agregados financeiros, sim. Quem doa não
+  é assunto de modelo de terceiro; quanto entrou, é.</p>
+</div>
+
+<h3 id="ia-prompt"><span class="num">29.3</span>O prompt de sistema</h3>
+
+{{cod:ia-instrucao|ts|src/server/ia/assistente.ts — instrução (início)}}
+
+<p>Duas escolhas de implementação sustentam custo e qualidade:</p>
+
+<ul>
+<li><strong>Dois blocos de sistema separados.</strong> A instrução é estável; o
+retrato dos dados muda a cada pergunta. Mantê-los em blocos distintos é o que
+permite ao cache de prompt fazer efeito sobre a parte fixa.</li>
+<li><strong>Janela de dez mensagens.</strong> O histórico enviado é truncado em
+<code>slice(-10)</code>: uma conversa longa não cresce indefinidamente em custo,
+e o contexto relevante é o retrato atual, não o que se falou há vinte turnos.</li>
+</ul>
+
+<p>Falha de rede ou de API é capturada, registrada no log do container e devolve
+uma mensagem que diz exatamente o que continua funcionando — “o resto do sistema
+segue funcionando normalmente”. A rota responde 503 nesse caso, não 500: é
+indisponibilidade de dependência externa, não erro da aplicação.</p>
+</section>

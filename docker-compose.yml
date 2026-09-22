@@ -1,0 +1,66 @@
+# ==========================================================
+# Meu AUmigo — apadrinhamento, cuidado e adoção.
+#
+# O PostgreSQL já existe no host, fora do compose (porta 5432).
+# Os segredos vêm do .env, que NÃO é versionado.
+#
+# Publicação: não há proxy reverso. A porta é exposta no host e o túnel
+# (Cloudflare) aponta para http://localhost:${APP_PORT}.
+# ==========================================================
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: meuaumigo:latest
+    container_name: meuaumigo-app
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
+      STORAGE_DIR: /app/storage
+      # A imagem base fica em UTC. Sem isto, a data do resgate, a
+      # competência da mensalidade e o "arrecadado este mês" saem 3 horas
+      # adiantados — e no dia 1 isso muda o mês inteiro de lugar.
+      TZ: America/Sao_Paulo
+    ports:
+      - "${APP_PORT:-1046}:3000"
+    volumes:
+      # Fotos e vídeos dos animais, comprovantes de despesa. A foto do
+      # animal é metade da captação: este volume entra na rotina de
+      # backup com a mesma prioridade do banco.
+      - midia:/app/storage
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - meuaumigo-net
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  midia:
+    driver: local
+
+networks:
+  meuaumigo-net:
+    driver: bridge
+    ipam:
+      config:
+        # Subnet FIXA para casar com a regra de ufw que libera a 5432 do
+        # Postgres do host. Sem fixar, o Docker sorteia outra faixa ao
+        # recriar e a regra para de valer. Ver: `ufw status | grep 5432`.
+        - subnet: 172.16.61.0/24
+          gateway: 172.16.61.1

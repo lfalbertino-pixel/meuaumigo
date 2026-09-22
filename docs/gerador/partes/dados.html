@@ -1,0 +1,337 @@
+<section class="pagina">
+<h1 class="titulo-parte"><span class="parte">Parte III</span>Modelo de dados</h1>
+
+<h2 id="dados-visao"><span class="num">7</span>Visão do modelo</h2>
+
+<div class="numeros">
+  <div><div class="v">20</div><div class="r">modelos</div></div>
+  <div><div class="v">20</div><div class="r">enums</div></div>
+  <div><div class="v">20</div><div class="r">tabelas</div></div>
+  <div><div class="v">728</div><div class="r">linhas de schema</div></div>
+</div>
+
+<p>Três eixos organizam o schema — <strong>animal</strong>, <strong>padrinho</strong>
+e <strong>ONG</strong> — e o trabalho todo consiste em amarrá-los. Repare, no
+diagrama, que <code>Contribuicao</code> e <code>Despesa</code> apontam ambas
+para <code>Animal</code>: é essa dupla ligação que torna possível responder
+“o que os meus cem reais fizeram pelo Thor”.</p>
+
+<figure class="diagrama">
+<svg viewBox="0 0 700 420" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, sans-serif">
+  <style>
+    .cx { fill:#fff; stroke:#1a4f50; stroke-width:1.1; }
+    .cxc { fill:#0a292b; }
+    .t  { font-size:10px; font-weight:700; fill:#0a292b; }
+    .tb { font-size:10px; font-weight:700; fill:#fff; }
+    .s  { font-size:8px; fill:#556360; }
+    .l  { stroke:#8c9895; stroke-width:1; fill:none; }
+    .lf { stroke:#ed9216; stroke-width:1.5; fill:none; }
+    .rot{ font-size:7.5px; fill:#8c9895; }
+  </style>
+
+  <!-- centro -->
+  <rect class="cx cxc" x="280" y="184" width="140" height="46" rx="7"/>
+  <text class="tb" x="350" y="204" text-anchor="middle">Animal</text>
+  <text x="350" y="218" text-anchor="middle" font-size="8" fill="#9fc0be">slug · status · custo estimado</text>
+
+  <!-- pessoas -->
+  <rect class="cx" x="16" y="16" width="124" height="40" rx="6"/>
+  <text class="t" x="78" y="33" text-anchor="middle">Usuario</text>
+  <text class="s" x="78" y="46" text-anchor="middle">papel · senhaHash</text>
+
+  <rect class="cx" x="16" y="76" width="124" height="40" rx="6"/>
+  <text class="t" x="78" y="93" text-anchor="middle">SessaoLogin</text>
+  <text class="s" x="78" y="106" text-anchor="middle">tokenHash · expiraEm</text>
+
+  <rect class="cx" x="16" y="136" width="124" height="40" rx="6"/>
+  <text class="t" x="78" y="153" text-anchor="middle">LogAuditoria</text>
+  <text class="s" x="78" y="166" text-anchor="middle">append-only</text>
+
+  <rect class="cx" x="16" y="196" width="124" height="40" rx="6"/>
+  <text class="t" x="78" y="213" text-anchor="middle">Padrinho</text>
+  <text class="s" x="78" y="226" text-anchor="middle">email único</text>
+
+  <rect class="cx" x="16" y="256" width="124" height="40" rx="6"/>
+  <text class="t" x="78" y="273" text-anchor="middle">Notificacao</text>
+  <text class="s" x="78" y="286" text-anchor="middle">lidaEm</text>
+
+  <!-- dinheiro -->
+  <rect class="cx" x="150" y="316" width="144" height="42" rx="6" fill="#fff8ec" stroke="#ed9216"/>
+  <text class="t" x="222" y="334" text-anchor="middle">Apadrinhamento</text>
+  <text class="s" x="222" y="347" text-anchor="middle">valorMensal · status</text>
+
+  <rect class="cx" x="310" y="316" width="144" height="42" rx="6" fill="#fff8ec" stroke="#ed9216"/>
+  <text class="t" x="382" y="334" text-anchor="middle">Contribuicao</text>
+  <text class="s" x="382" y="347" text-anchor="middle">competência · status</text>
+
+  <rect class="cx" x="470" y="316" width="130" height="42" rx="6"/>
+  <text class="t" x="535" y="334" text-anchor="middle">Despesa</text>
+  <text class="s" x="535" y="347" text-anchor="middle">categoria · valor</text>
+
+  <rect class="cx" x="470" y="372" width="130" height="36" rx="6"/>
+  <text class="t" x="535" y="388" text-anchor="middle">Comprovante</text>
+  <text class="s" x="535" y="400" text-anchor="middle">publico</text>
+
+  <rect class="cx" x="150" y="372" width="144" height="36" rx="6"/>
+  <text class="t" x="222" y="388" text-anchor="middle">Campanha</text>
+  <text class="s" x="222" y="400" text-anchor="middle">meta · slug</text>
+
+  <!-- animal satélites -->
+  <rect class="cx" x="560" y="16" width="124" height="40" rx="6"/>
+  <text class="t" x="622" y="33" text-anchor="middle">Foto</text>
+  <text class="s" x="622" y="46" text-anchor="middle">FOTO | VIDEO</text>
+
+  <rect class="cx" x="560" y="76" width="124" height="40" rx="6"/>
+  <text class="t" x="622" y="93" text-anchor="middle">EventoDiario</text>
+  <text class="s" x="622" y="106" text-anchor="middle">linha do tempo</text>
+
+  <rect class="cx" x="560" y="136" width="124" height="40" rx="6"/>
+  <text class="t" x="622" y="153" text-anchor="middle">AtualizacaoAnimal</text>
+  <text class="s" x="622" y="166" text-anchor="middle">carta ao padrinho</text>
+
+  <rect class="cx" x="560" y="196" width="124" height="40" rx="6"/>
+  <text class="t" x="622" y="213" text-anchor="middle">RegistroSaude</text>
+  <text class="s" x="622" y="226" text-anchor="middle">valor · proximaData</text>
+
+  <rect class="cx" x="560" y="256" width="124" height="40" rx="6"/>
+  <text class="t" x="622" y="273" text-anchor="middle">Adocao</text>
+  <text class="s" x="622" y="286" text-anchor="middle">funil</text>
+
+  <rect class="cx" x="300" y="112" width="130" height="36" rx="6"/>
+  <text class="t" x="365" y="128" text-anchor="middle">Veterinario</text>
+  <text class="s" x="365" y="140" text-anchor="middle">CRMV</text>
+
+  <rect class="cx" x="150" y="112" width="124" height="36" rx="6"/>
+  <text class="t" x="212" y="128" text-anchor="middle">ItemEstoque</text>
+  <text class="s" x="212" y="140" text-anchor="middle">saldo · minimo</text>
+
+  <rect class="cx" x="150" y="46" width="124" height="36" rx="6"/>
+  <text class="t" x="212" y="62" text-anchor="middle">MovimentoEstoque</text>
+  <text class="s" x="212" y="74" text-anchor="middle">ENTRADA | SAIDA</text>
+
+  <!-- ligações -->
+  <path class="l" d="M78 56 L78 76"/>
+  <path class="l" d="M78 116 L78 136"/>
+  <path class="l" d="M78 176 L78 196"/>
+  <path class="l" d="M78 236 L78 256"/>
+  <path class="l" d="M140 216 L280 210"/>
+  <path class="lf" d="M140 228 L150 316"/>
+  <path class="lf" d="M222 316 L300 232"/>
+  <path class="lf" d="M294 336 L310 336"/>
+  <path class="lf" d="M382 316 L360 232"/>
+  <path class="l" d="M470 336 L420 228"/>
+  <path class="l" d="M535 358 L535 372"/>
+  <path class="l" d="M294 390 L310 352"/>
+  <path class="l" d="M420 200 L560 40"/>
+  <path class="l" d="M420 202 L560 98"/>
+  <path class="l" d="M420 206 L560 156"/>
+  <path class="l" d="M420 210 L560 214"/>
+  <path class="l" d="M420 218 L560 272"/>
+  <path class="l" d="M560 214 L430 130"/>
+  <path class="l" d="M212 148 L280 196"/>
+  <path class="l" d="M212 82 L212 112"/>
+
+  <text class="rot" x="238" y="278" transform="rotate(-38 238 278)">o dinheiro que entra</text>
+  <text class="rot" x="470" y="278" transform="rotate(38 470 278)">o dinheiro que sai</text>
+</svg>
+<figcaption>Relacionamentos principais. Em laranja, o caminho do dinheiro do padrinho até o animal.</figcaption>
+</figure>
+
+<h3 id="dados-convencoes"><span class="num">7.1</span>Convenções do schema</h3>
+
+<ul>
+<li><strong>Identificadores</strong>: <code>cuid()</code> em todos os modelos.
+Ordenável no tempo e sem revelar contagem — um id sequencial na URL conta ao
+visitante quantos animais a ONG já cadastrou.</li>
+<li><strong>Nomes</strong>: modelos e campos em português, porque o domínio é
+falado em português pela equipe. O <code>@@map</code> aponta para tabelas no
+plural e em minúsculas (<code>animais</code>, <code>contribuicoes</code>).</li>
+<li><strong>Dinheiro</strong>: sempre <code>Decimal @db.Decimal(10,2)</code>.
+Nunca <code>Float</code>. Peso e quantidade de estoque usam três casas.</li>
+<li><strong>Exclusão</strong>: <code>deletadoEm</code> nos modelos com história —
+animal, padrinho e usuário. Apagar um animal apagaria o histórico de quem o
+sustentou.</li>
+<li><strong>Índices</strong>: compostos, orientados pelas consultas reais.
+<code>@@index([competencia, status])</code> em contribuições e
+<code>@@index([animalId, data])</code> em despesas são os dois mais usados.</li>
+</ul>
+
+<h2 id="dados-dicionario"><span class="num">8</span>Dicionário de dados</h2>
+
+<h3 id="dic-pessoas"><span class="num">8.1</span>Pessoas e acesso</h3>
+
+<h4>Usuario · <code>usuarios</code></h4>
+<p>Credencial de acesso. Papéis: <code>ADMIN</code>, <code>EQUIPE</code>,
+<code>VETERINARIO</code> e <code>PADRINHO</code>. Um padrinho com login tem
+registro aqui <em>e</em> em <code>Padrinho</code>, ligados por
+<code>usuarioId</code>; a maioria dos padrinhos, porém, existe apenas em
+<code>Padrinho</code>, sem nunca ter criado senha.</p>
+
+<h4>SessaoLogin · <code>sessoes_login</code></h4>
+<p>O banco guarda apenas o <strong>hash SHA-256</strong> do token; o valor em
+claro existe só no cookie. Um vazamento do banco não entrega sessão a ninguém.
+Campos de contexto — <code>ip</code>, <code>userAgent</code> — servem para
+investigar acesso indevido, e <code>revogadaEm</code> permite encerrar sessão
+sem apagar o registro.</p>
+
+<h4>LogAuditoria · <code>logs_auditoria</code></h4>
+<p>Append-only de verdade: o papel da aplicação não tem <code>UPDATE</code> nem
+<code>DELETE</code> nesta tabela (seção 23). Guarda ação, entidade, id, um
+<code>Json</code> de detalhe e o IP.</p>
+
+<h4>Padrinho · <code>padrinhos</code></h4>
+<p>E-mail é único e serve de chave natural: quem já apadrinha e apadrinha de novo
+não vira cadastro duplicado. Dois campos de consentimento merecem atenção:
+<code>aceitaNotificacao</code> controla o envio de novidades e
+<code>perfilPublico</code> autoriza o nome a aparecer no mural do animal — nenhum
+dos dois é presumido.</p>
+
+<h3 id="dic-animal"><span class="num">8.2</span>Animal e sua história</h3>
+
+{{cod:schema-animal|prisma|prisma/schema.prisma — model Animal}}
+
+<p>Três grupos de campos merecem comentário:</p>
+
+<table>
+<thead><tr><th style="width:30%">Campo</th><th>Observação</th></tr></thead>
+<tbody>
+<tr><td><code>slug</code></td><td>O endereço público (<code>/animais/thor</code>). É o link que circula no WhatsApp e no Instagram, e por isso <strong>nunca muda</strong> quando o animal é renomeado — a edição não o regenera.</td></tr>
+<tr><td><code>dataNascimento</code> + <code>idadeAproximada</code></td><td>Animal resgatado quase nunca tem data de nascimento. Os dois campos coexistem: a exibição prefere a data e cai para a estimativa escrita à mão, marcando-a como aproximada. A ficha não pode sugerir precisão que não existe.</td></tr>
+<tr><td><code>custoAlimentacao</code>, <code>custoTratamento</code>, <code>custoMedicamento</code></td><td>Estimativa da ONG, não gasto real. São a meta pública de custeio (seção 11).</td></tr>
+<tr><td><code>ativo</code> × <code>status</code></td><td><code>status</code> é a situação (em tratamento, disponível, adotado…). <code>ativo</code> tira o animal da vitrine sem apagar nada. Um animal adotado fica <code>ativo = false</code> e conserva história, despesas e padrinhos.</td></tr>
+<tr><td><code>fotoCapaId</code></td><td>Relação um-para-um com <code>Foto</code>, separada da galeria. É a imagem que vai para o Open Graph; vídeo nunca vira capa, porque o preview do link precisa de imagem.</td></tr>
+</tbody>
+</table>
+
+<h4>Foto · <code>fotos</code></h4>
+<p>Guarda apenas o <strong>nome</strong> do arquivo dentro de
+<code>STORAGE_DIR/animais</code> — nunca caminho absoluto, porque o volume pode
+ser remontado em outro ponto. <code>tipo</code> distingue foto de vídeo e
+<code>ordem</code> define a galeria pública.</p>
+
+<h4>EventoDiario · <code>eventos_diario</code> e AtualizacaoAnimal · <code>atualizacoes_animal</code></h4>
+<p>São coisas diferentes e foi deliberado separá-las. O <strong>diário</strong> é
+a biografia pública do animal: resgate, castração, primeira melhora, adoção.
+Alguns eventos nascem do próprio sistema (<code>automatico = true</code>) e
+outros a equipe escreve. A <strong>atualização</strong> é a carta ao padrinho:
+dispara notificação para quem apadrinha e só aparece no perfil público se for
+marcada como <code>publica</code>.</p>
+
+<h3 id="dic-saude"><span class="num">8.3</span>Saúde</h3>
+
+<h4>RegistroSaude · <code>registros_saude</code></h4>
+<p>Onze tipos, de consulta a pesagem. Três campos carregam mais peso do que
+parece: <code>valor</code> (que vira despesa), <code>pesoKg</code> (que atualiza
+o peso atual do animal quando o tipo é <code>PESAGEM</code>) e
+<code>proximaData</code>, que alimenta a agenda do painel e o aviso de próxima
+consulta na área do padrinho.</p>
+
+<p>A relação <code>despesa Despesa?</code> é um-para-um opcional. É ela que
+garante que o mesmo atendimento apareça com o mesmo valor na ficha clínica e no
+financeiro, sem possibilidade de divergirem (seção 15).</p>
+
+<h3 id="dic-dinheiro"><span class="num">8.4</span>O dinheiro que entra</h3>
+
+<h4>Apadrinhamento · <code>apadrinhamentos</code></h4>
+<p>Liga padrinho e animal com valor mensal, modalidade e status
+(<code>ATIVO</code>, <code>PAUSADO</code>, <code>CANCELADO</code>).</p>
+
+<div class="nota">
+  <span class="rotulo">Por que não há unicidade (padrinho, animal)</span>
+  <p>Uma pessoa pode cancelar e, meses depois, voltar a apadrinhar o mesmo
+  animal. Duas linhas para o mesmo par são a representação correta dessa
+  história — a restrição de “um por vez” é aplicada na regra de negócio, que
+  recusa um novo apadrinhamento quando já existe um <code>ATIVO</code> ou
+  <code>PAUSADO</code>.</p>
+</div>
+
+<h4>Contribuicao · <code>contribuicoes</code></h4>
+
+{{cod:schema-contribuicao|prisma|prisma/schema.prisma — model Contribuicao}}
+
+<p>Mensalidade de apadrinhamento, doação avulsa e aporte de campanha passam
+todas por esta tabela. Unificá-las é o que torna o total do mês uma soma só e
+mantém a transparência sem buraco. O campo decisivo é <code>competencia</code>,
+sempre no dia 1 do mês de referência (seção 12).</p>
+
+<h3 id="dic-saida"><span class="num">8.5</span>O dinheiro que sai</h3>
+
+<h4>Despesa · <code>despesas</code></h4>
+<p><code>animalId</code> é opcional: aluguel, energia e ração a granel são do
+abrigo inteiro. O rateio dessas despesas por animal, quando necessário, acontece
+no relatório — não no lançamento, que registra o fato como ele aconteceu.</p>
+
+<h4>Comprovante · <code>comprovantes</code></h4>
+<p>O campo <code>publico</code> é a chave da transparência: a ONG escolhe o que
+o padrinho vê sem abrir a contabilidade inteira. Nota fiscal costuma trazer CNPJ,
+endereço e às vezes o nome do veterinário — publicar tudo por engano é dano que
+não volta.</p>
+
+<h3 id="dic-estoque"><span class="num">8.6</span>Estoque</h3>
+
+<h4>ItemEstoque · <code>itens_estoque</code> e MovimentoEstoque · <code>movimentos_estoque</code></h4>
+<p><code>saldo</code> existe no item, mas <strong>nunca é digitado</strong>: é
+mantido pelos movimentos, dentro da mesma transação que os grava.
+<code>minimo</code> acende o alerta de reposição no painel. Um movimento de saída
+pode apontar para um animal específico — ração medicamentosa, por exemplo.</p>
+
+<h3 id="dic-resto"><span class="num">8.7</span>Campanha, adoção, notificação e configuração</h3>
+
+<table>
+<thead><tr><th style="width:26%">Modelo</th><th>Observação</th></tr></thead>
+<tbody>
+<tr><td><strong>Campanha</strong></td><td>Tem <code>slug</code> próprio, porque também gera link compartilhável. <code>animalId</code> é opcional: há campanha do abrigo (reforma do canil) que não é de um animal. O arrecadado <strong>não</strong> é campo — é sempre somado das contribuições pagas, para não existir número que possa ficar desatualizado.</td></tr>
+<tr><td><strong>Adocao</strong></td><td>O processo, não o resultado. <code>respostas</code> é <code>Json</code> com o que veio do formulário público (moradia, outros animais, rotina). Sete status compõem o funil.</td></tr>
+<tr><td><strong>Notificacao</strong></td><td>Grava título, corpo e link. <code>lidaEm</code> nulo é não lida. O envio externo não existe ainda (seção 1.3).</td></tr>
+<tr><td><strong>ConfiguracaoOng</strong></td><td>Linha única, com id fixo <code>"unica"</code>. Um <code>upsert</code> sempre acerta o alvo e nunca cria uma segunda configuração — padrão simples e à prova de duplicata.</td></tr>
+</tbody>
+</table>
+
+<h2 id="dados-enums"><span class="num">9</span>Enumerações</h2>
+
+<p>Vinte enums no banco. Cada um tem um dicionário correspondente em
+<code>src/lib/format.ts</code> que traduz o valor técnico para o rótulo que a
+equipe usa — e, quando faz sentido, para uma cor e um emoji. O vocabulário da
+tela é o mesmo do grupo de WhatsApp da ONG, o que economiza um treinamento
+inteiro.</p>
+
+<table class="longa">
+<thead><tr><th style="width:27%">Enum</th><th>Valores</th></tr></thead>
+<tbody>
+<tr><td><code>PapelUsuario</code></td><td>ADMIN · EQUIPE · VETERINARIO · PADRINHO</td></tr>
+<tr><td><code>Especie</code></td><td>CANINA · FELINA · OUTRA</td></tr>
+<tr><td><code>Sexo</code></td><td>MACHO · FEMEA · NAO_INFORMADO</td></tr>
+<tr><td><code>Porte</code></td><td>PEQUENO · MEDIO · GRANDE</td></tr>
+<tr><td><code>StatusAnimal</code></td><td>EM_TRATAMENTO · DISPONIVEL_ADOCAO · EM_PROCESSO_ADOCAO · ADOTADO · INDISPONIVEL · FALECIDO</td></tr>
+<tr><td><code>TipoMidia</code></td><td>FOTO · VIDEO</td></tr>
+<tr><td><code>TipoEventoDiario</code></td><td>RESGATE · CONSULTA · TRATAMENTO · MELHORA · PASSEIO · APADRINHAMENTO · VACINA · CASTRACAO · ADOCAO · ANIVERSARIO · OUTRO</td></tr>
+<tr><td><code>TipoRegistroSaude</code></td><td>CONSULTA · VACINA · VERMIFUGO · CASTRACAO · EXAME · CIRURGIA · MEDICAMENTO · PESAGEM · ALERGIA · DOENCA · OUTRO</td></tr>
+<tr><td><code>ModalidadeApadrinhamento</code></td><td>ALIMENTACAO (R$ 30) · CUIDADOS (R$ 50) · COMPLETO (R$ 100) · PERSONALIZADO</td></tr>
+<tr><td><code>StatusApadrinhamento</code></td><td>ATIVO · PAUSADO · CANCELADO</td></tr>
+<tr><td><code>StatusContribuicao</code></td><td>PENDENTE · PAGA · ATRASADA · CANCELADA</td></tr>
+<tr><td><code>MetodoPagamento</code></td><td>PIX · CARTAO · BOLETO · TRANSFERENCIA · DINHEIRO · OUTRO</td></tr>
+<tr><td><code>OrigemContribuicao</code></td><td>APADRINHAMENTO · DOACAO_AVULSA · CAMPANHA</td></tr>
+<tr><td><code>CategoriaDespesa</code></td><td>VETERINARIO · ALIMENTACAO · MEDICAMENTO · HIGIENE · TRANSPORTE · ESTRUTURA · OUTRO</td></tr>
+<tr><td><code>TipoComprovante</code></td><td>NOTA_FISCAL · RECIBO · CUPOM · CONTRATO · OUTRO</td></tr>
+<tr><td><code>TipoItemEstoque</code></td><td>RACAO · MEDICAMENTO · HIGIENE · OUTRO</td></tr>
+<tr><td><code>TipoMovimentoEstoque</code></td><td>ENTRADA · SAIDA · PERDA · AJUSTE</td></tr>
+<tr><td><code>StatusCampanha</code></td><td>RASCUNHO · ATIVA · CONCLUIDA · ENCERRADA</td></tr>
+<tr><td><code>StatusAdocao</code></td><td>INTERESSE · ENTREVISTA · VISITA · APROVADA · CONCLUIDA · RECUSADA · DESISTENCIA</td></tr>
+<tr><td><code>TipoNotificacao</code></td><td>ATUALIZACAO_ANIMAL · APADRINHAMENTO_CONFIRMADO · PAGAMENTO_PENDENTE · ANIVERSARIO · CONQUISTA · CAMPANHA · ADOCAO · OUTRO</td></tr>
+</tbody>
+</table>
+
+<h2 id="dados-migrations"><span class="num">10</span>Migrations e privilégios</h2>
+
+<p>A migração inicial (<code>0001_init</code>, 608 linhas de SQL) é versionada e
+aplicada pelo entrypoint com o papel <strong>dono</strong>. Logo depois, o mesmo
+entrypoint reaplica os privilégios da aplicação:</p>
+
+{{cod:grants|sql|prisma/sql/grants.sql}}
+
+<p>O arquivo é idempotente de propósito. Tabela criada por migração futura já
+nasce acessível à aplicação por causa do <code>ALTER DEFAULT PRIVILEGES</code>,
+e se alguém afrouxar a muralha à mão, o próximo deploy a reafirma. As duas
+últimas instruções são as mais importantes do arquivo: tiram o histórico de
+migrações do alcance da aplicação e tornam a auditoria imutável para ela.</p>
+</section>

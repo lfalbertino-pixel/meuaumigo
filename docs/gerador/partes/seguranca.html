@@ -1,0 +1,179 @@
+<section class="pagina">
+<h1 class="titulo-parte"><span class="parte">Parte V</span>Segurança</h1>
+
+<p>O sistema administra dinheiro de terceiros e dados pessoais de cento e
+cinquenta pessoas que confiaram na ONG. As defesas abaixo estão ordenadas da
+mais estrutural para a mais pontual.</p>
+
+<h2 id="seg-papeis"><span class="num">19</span>Dois papéis no banco</h2>
+
+<p>A aplicação <strong>não pode alterar o próprio schema</strong>. Existem duas
+credenciais para o mesmo banco:</p>
+
+<table>
+<thead><tr><th style="width:26%">Papel</th><th style="width:22%">Quem usa</th><th>Privilégios</th></tr></thead>
+<tbody>
+<tr><td><code>meuaumigo_app</code></td><td>A aplicação em execução, via <code>DATABASE_URL</code></td><td><code>SELECT</code>, <code>INSERT</code>, <code>UPDATE</code>, <code>DELETE</code>. Nenhum <code>CREATE</code>, <code>ALTER</code> ou <code>DROP</code>. Sem <code>UPDATE</code>/<code>DELETE</code> na auditoria e sem acesso ao histórico de migrações.</td></tr>
+<tr><td><code>meuaumigo_owner</code></td><td>Apenas o entrypoint, via <code>DATABASE_URL_OWNER</code></td><td>Dono do schema. Usado só por <code>prisma migrate deploy</code> e pela aplicação dos GRANTs, no boot.</td></tr>
+</tbody>
+</table>
+
+<p>A separação transforma uma classe inteira de incidentes em erro barrado pelo
+banco. Um bug de código, uma injeção que escapasse da camada do ORM ou uma
+dependência comprometida não conseguem apagar tabela nem reescrever o log de
+auditoria: o papel que está conectado simplesmente não tem essa permissão.</p>
+
+<h2 id="seg-sessao"><span class="num">20</span>Sessão e senha</h2>
+
+<h3 id="seg-senha"><span class="num">20.1</span>Senha</h3>
+
+<p><strong>Argon2id</strong> via <code>@node-rs/argon2</code>, com 19 MiB de
+memória, 2 iterações e paralelismo 1 — os parâmetros recomendados pelo OWASP para
+uso interativo. A senha em claro nunca é gravada nem registrada em log.</p>
+
+<p>O login responde a mesma mensagem — <em>“E-mail ou senha incorretos”</em> —
+para usuário inexistente, senha errada e conta desativada. E, no caminho do
+usuário inexistente, ainda executa uma verificação contra um hash descartável:
+sem isso, a diferença de tempo de resposta viraria um oráculo de “este e-mail
+existe no sistema”.</p>
+
+<h3 id="seg-token"><span class="num">20.2</span>Token de sessão</h3>
+
+{{cod:ler-sessao|ts|src/lib/auth.ts — leitura memoizada da sessão}}
+
+<ul>
+<li>O token é <strong>32 bytes de aleatoriedade real</strong> em hexadecimal.</li>
+<li>O banco guarda apenas o SHA-256 dele. Um dump não dá sessão a ninguém.
+SHA-256 basta aqui porque o token já é aleatório e longo — não há o que adivinhar
+por força bruta, e o custo de um Argon2 a cada requisição seria desperdício.</li>
+<li>O cookie é <code>httpOnly</code>, <code>SameSite=Lax</code> e
+<code>Secure</code> quando há TLS. Atrás do Cloudflare Tunnel o TLS termina no
+proxy, então a decisão também aceita o cabeçalho
+<code>x-forwarded-proto</code>.</li>
+<li>A leitura é envolvida em <code>cache()</code> do React: vários usos no mesmo
+render batem no banco uma vez só.</li>
+<li>Cada leitura reconfere expiração, revogação, <code>ativo</code> e
+<code>deletadoEm</code>. Desativar um usuário revoga as sessões dele na mesma
+ação — sem isso, a pessoa continuaria dentro até o cookie expirar, o que pode ser
+meio dia inteiro.</li>
+</ul>
+
+<h2 id="seg-csrf"><span class="num">21</span>Defesa de CSRF</h2>
+
+{{cod:csrf|ts|src/lib/auth.ts — conferirMesmaOrigem()}}
+
+<p>Toda Server Action começa por essa checagem. Ela aceita duas origens: a
+configurada em <code>APP_URL</code> e a da própria requisição, reconstruída a
+partir do host encaminhado pelo proxy. A segunda existe porque o app fica atrás
+de um túnel — se o domínio mudar e alguém esquecer de ajustar a variável, o login
+pararia de funcionar com um erro que não explica nada.</p>
+
+<p>Isso não afrouxa a proteção: num POST vindo de outro site, o <code>Origin</code>
+é o do site atacante e continua diferente do host da requisição.</p>
+
+<h2 id="seg-autorizacao"><span class="num">22</span>Autorização por papel</h2>
+
+<p>Quatro funções em <code>src/lib/auth.ts</code> são o único portão de entrada,
+usadas tanto nos layouts quanto no início de cada Server Action:</p>
+
+<table>
+<thead><tr><th style="width:26%">Função</th><th>Comportamento</th></tr></thead>
+<tbody>
+<tr><td><code>exigirUsuario()</code></td><td>Sessão válida ou redireciona para <code>/entrar</code>.</td></tr>
+<tr><td><code>exigirEquipe()</code></td><td>Papel em ADMIN, EQUIPE ou VETERINARIO. Um padrinho autenticado que digite <code>/painel</code> não recebe “acesso negado”: é levado para <code>/meus-aumigos</code>, que é onde ele quer estar.</td></tr>
+<tr><td><code>exigirAdmin()</code></td><td>Financeiro, configurações e geração de cobrança. Lança erro em vez de redirecionar — quem chegou aqui sem ser admin está tentando algo que a interface não oferece.</td></tr>
+<tr><td><code>exigirPadrinho()</code></td><td>Exige vínculo com um registro de <code>Padrinho</code>; o <code>padrinhoId</code> vem da sessão, nunca da URL.</td></tr>
+</tbody>
+</table>
+
+<div class="nota">
+  <span class="rotulo">A verificação é no servidor, sempre</span>
+  <p>O menu esconde <code>/financeiro</code> de quem não é admin, mas esconder não
+  é proteger. A página chama <code>exigirAdmin()</code> antes de qualquer
+  consulta, e a Server Action que gera cobranças chama de novo. Esconder é
+  cortesia com o usuário; barrar é a segurança.</p>
+</div>
+
+<p>Na área do padrinho, todas as consultas são filtradas pelo
+<code>padrinhoId</code> da sessão. A rota <code>/meus-aumigos/[slug]</code>
+procura o apadrinhamento por <code>padrinhoId</code> <em>e</em> slug do animal —
+trocar o slug na barra de endereço devolve 404, não os dados de outra pessoa.</p>
+
+<h2 id="seg-auditoria"><span class="num">23</span>Auditoria</h2>
+
+<p>Toda mudança de dinheiro, de apadrinhamento e de status de animal é
+registrada: quem fez, o quê, em qual entidade, com que detalhe e de qual IP.
+Quando um padrinho perguntar por que a mensalidade dele mudou, a resposta
+existe.</p>
+
+<p>Duas escolhas sustentam a confiabilidade desse log:</p>
+
+<ul>
+<li><strong>É append-only no banco</strong>, não por convenção de código. O
+<code>REVOKE UPDATE, DELETE</code> do <code>grants.sql</code> significa que nem a
+aplicação consegue reescrever uma linha. Um incidente precisa de log que o
+próprio sistema comprometido não consiga alterar.</li>
+<li><strong>Falha de auditoria não derruba a operação</strong> — mas também não
+passa em silêncio: o erro vai para o log do container. A operação do usuário é
+mais importante do que o registro dela, e um registro que falha sem avisar é pior
+do que nenhum.</li>
+</ul>
+
+<h2 id="seg-midia"><span class="num">24</span>Mídia, comprovantes e dados pessoais</h2>
+
+<h3 id="seg-arquivo"><span class="num">24.1</span>Arquivos</h3>
+
+<p>O nome do arquivo é <strong>sempre gerado pelo sistema</strong>
+(<code>timestamp</code> em base 36 + 8 bytes aleatórios + extensão derivada do
+tipo MIME). O nome que veio do navegador nunca toca o sistema de arquivos. Na
+leitura, o caminho passa por <code>path.basename()</code>, o que fecha a porta de
+um <code>../../etc/passwd</code> que viesse do banco.</p>
+
+<p>Os tipos aceitos são uma lista de permissão explícita — JPEG, PNG, WEBP, AVIF,
+MP4, WEBM, MOV para mídia; PDF e imagens para comprovante — e o limite é 25 MB
+por arquivo.</p>
+
+<h3 id="seg-comprovante"><span class="num">24.2</span>Foto pública, comprovante condicional</h3>
+
+<p>As duas rotas de arquivo têm regras de acesso deliberadamente diferentes:</p>
+
+<ul>
+<li><code>/api/foto/[id]</code> é <strong>pública</strong>. É ela que aparece no
+preview do link compartilhado no WhatsApp, e um preview que exige login não
+aparece. Responde com cache imutável, porque o arquivo nunca muda depois de
+escrito.</li>
+<li><code>/api/comprovante/[id]</code> só entrega o documento se ele estiver
+marcado como <code>publico</code>; caso contrário, exige sessão de equipe — e
+responde <strong>404</strong>, não 403, para não confirmar a existência do
+documento a quem não deveria vê-lo.</li>
+</ul>
+
+<h3 id="seg-ia-dados"><span class="num">24.3</span>Dados pessoais e a IA</h3>
+
+<p>O contexto enviado ao modelo é montado no servidor, tem tamanho conhecido e
+contém apenas <strong>agregados e dados de animais</strong>. Nome, e-mail,
+telefone e documento de padrinho não saem daqui (seção 29).</p>
+
+<h3 id="seg-superficie"><span class="num">24.4</span>Superfície pública de escrita</h3>
+
+<p>Três ações aceitam entrada de quem não está autenticado. Vale conhecê-las,
+porque são o alvo natural de abuso:</p>
+
+<table>
+<thead><tr><th style="width:30%">Ação</th><th>Contenção</th></tr></thead>
+<tbody>
+<tr><td><code>apadrinhar()</code></td><td>Valida com Zod, confere origem, recusa duplicidade de apadrinhamento ativo e cria tudo como <code>PENDENTE</code>. Nenhum registro criado por essa via concede acesso ou aparece como dinheiro recebido.</td></tr>
+<tr><td><code>doar()</code></td><td>Mesma contenção. Valor mínimo de R$ 5 e máximo de R$ 100.000 impedem que a barra de uma campanha seja poluída com um número absurdo.</td></tr>
+<tr><td><code>manifestarInteresse()</code></td><td>Abre processo com status <code>INTERESSE</code> e recusa um segundo pedido em aberto do mesmo e-mail para o mesmo animal.</td></tr>
+</tbody>
+</table>
+
+<div class="atencao">
+  <span class="rotulo">Limitação conhecida</span>
+  <p>Não há <em>rate limit</em> nem CAPTCHA nessas três rotas. Na escala atual —
+  uma ONG divulgando para a própria rede — isso não foi um problema, e o dano de
+  um abuso é limitado a registros pendentes que a equipe descarta. Se o sistema
+  ganhar tráfego aberto, é o primeiro item a acrescentar; a contenção natural
+  seria limitar por IP na camada do Cloudflare, que já está no caminho.</p>
+</div>
+</section>

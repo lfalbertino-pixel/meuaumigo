@@ -1,0 +1,123 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Sem fonte externa de propósito: o build não pode depender de rede, e
+     a página pública do animal precisa abrir rápido em 4G ruim — ela é
+     aberta a partir de um link do WhatsApp, quase sempre no celular. */
+  --fonte-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-tinta-fundo text-tinta antialiased;
+  font-family: var(--fonte-sans);
+  padding-bottom: env(safe-area-inset-bottom);
+  -webkit-tap-highlight-color: transparent;
+}
+
+@layer components {
+  .cartao {
+    @apply rounded-caixa border border-tinta-borda bg-white shadow-cartao;
+  }
+
+  .rotulo {
+    @apply mb-1 block text-xs font-semibold uppercase tracking-wide text-tinta-suave;
+  }
+
+  .campo {
+    @apply w-full rounded-xl border border-tinta-borda bg-white px-3 py-2.5 text-base
+      text-tinta outline-none transition placeholder:text-tinta-clara
+      focus:border-petroleo-400 focus:ring-4 focus:ring-petroleo-100;
+  }
+
+  .botao {
+    @apply inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl px-5
+      text-sm font-semibold transition duration-150 ease-entrada active:scale-[.98]
+      disabled:cursor-not-allowed disabled:opacity-50;
+    /* Sem isto o navegador espera 300ms para saber se foi duplo-toque. */
+    touch-action: manipulation;
+  }
+
+  /* Laranja é a cor do afeto e da ação: doar, apadrinhar, ajudar.
+     Nada mais no sistema usa este botão. */
+  .botao-doar {
+    @apply botao bg-laranja-500 text-white shadow-cartao hover:bg-laranja-600;
+  }
+
+  .botao-primario {
+    @apply botao bg-petroleo-800 text-white hover:bg-petroleo-900;
+  }
+
+  .botao-secundario {
+    @apply botao border border-tinta-borda bg-white text-tinta hover:border-petroleo-300 hover:text-petroleo-700;
+  }
+
+  .botao-fantasma {
+    @apply botao text-tinta-suave hover:bg-petroleo-50 hover:text-petroleo-700;
+  }
+
+  .selo {
+    @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold;
+  }
+
+  .titulo-seccao {
+    @apply text-xs font-bold uppercase tracking-wider text-petroleo-600;
+  }
+
+  .esqueleto {
+    @apply relative overflow-hidden rounded-lg bg-tinta-borda/70;
+  }
+
+  .esqueleto::after {
+    @apply absolute inset-0 -translate-x-full animate-brilho;
+    content: '';
+    background-image: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.7), transparent);
+  }
+
+  /* Fio laranja no topo enquanto o servidor responde. Nunca fecha
+     sozinho: quem fecha é a tela nova entrando. */
+  .barra-rota {
+    @apply fixed inset-x-0 top-0 z-[60] h-0.5 origin-left animate-barra-rota bg-laranja-500;
+  }
+
+  /* Fundo de patinhas. Usado no cabeçalho público e na tela de login —
+     nunca atrás de tabela ou formulário, onde vira ruído. */
+  .patinhas {
+    background-image: radial-gradient(rgba(10, 41, 43, 0.055) 1.5px, transparent 1.5px);
+    background-size: 22px 22px;
+  }
+}
+
+/* Barra de rolagem discreta no desktop; no celular o sistema cuida. */
+@media (min-width: 768px) {
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-tinta-borda;
+  }
+}
+
+/**
+ * Quem pediu menos movimento recebe menos movimento. Vem por último de
+ * propósito, para vencer tudo que está acima — inclusive a barra de meta,
+ * que é a animação mais insistente do sistema.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

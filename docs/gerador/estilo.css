@@ -1,0 +1,215 @@
+/* ==========================================================
+   Documentação técnica — Meu AUmigo
+   Impressa em A4 pelo Chromium. Toda medida em mm/pt: o destino é
+   papel, e px em papel depende do DPI de quem imprime.
+   ========================================================== */
+
+:root {
+  --petroleo-900: #0a292b;
+  --petroleo-800: #143d3f;
+  --petroleo-700: #1a4f50;
+  --petroleo-600: #1f6362;
+  --petroleo-100: #d9ecea;
+  --petroleo-50:  #f0f7f6;
+  --laranja-500:  #ed9216;
+  --laranja-700:  #a85a0d;
+  --laranja-50:   #fff8ec;
+  --tinta:        #182321;
+  --tinta-suave:  #556360;
+  --tinta-clara:  #8c9895;
+  --borda:        #e2eae8;
+  --fundo:        #f6faf9;
+  --risco:        #b0243a;
+  --seguro:       #1f7a4d;
+}
+
+@page { size: A4; }
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 0 18mm;
+  font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 9.6pt;
+  line-height: 1.58;
+  color: var(--tinta);
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+/* ---------- Capa ----------
+   Impressa em arquivo separado, sem cabeçalho, sem rodapé e sem margem —
+   por isso ocupa a folha A4 inteira. */
+
+.capa {
+  height: 297mm;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  page-break-after: always;
+  text-align: left;
+  margin: 0 -18mm;
+  padding: 0 18mm;
+  background: var(--petroleo-900);
+  color: #fff;
+}
+.capa img { width: 46mm; margin-bottom: 9mm; }
+.capa .produto { font-size: 34pt; font-weight: 800; letter-spacing: -0.8pt; line-height: 1.05; }
+.capa .produto em { font-style: normal; color: var(--laranja-500); }
+.capa .subtitulo { margin-top: 5mm; font-size: 15pt; font-weight: 600; color: rgba(255,255,255,.78); }
+.capa .frase {
+  margin-top: 12mm; padding-left: 5mm; font-size: 11pt; font-style: italic;
+  color: rgba(255,255,255,.62); border-left: 2pt solid var(--laranja-500);
+}
+.capa .ficha { margin-top: 16mm; display: grid; grid-template-columns: repeat(2, 1fr); gap: 5mm 10mm; max-width: 130mm; }
+.capa .ficha div { border-top: 0.6pt solid rgba(255,255,255,.22); padding-top: 2mm; }
+.capa .ficha dt { font-size: 7.5pt; text-transform: uppercase; letter-spacing: .09em; color: rgba(255,255,255,.5); }
+.capa .ficha dd { margin: 1mm 0 0; font-size: 10pt; font-weight: 700; }
+
+/* ---------- Estrutura ---------- */
+
+.pagina { page-break-before: always; }
+
+h1.titulo-parte {
+  font-size: 21pt; font-weight: 800; letter-spacing: -0.4pt;
+  color: var(--petroleo-900); margin: 0 0 3mm;
+  padding-bottom: 3mm; border-bottom: 2pt solid var(--laranja-500);
+}
+h1.titulo-parte .parte {
+  display: block; font-size: 8.5pt; font-weight: 800; letter-spacing: .16em;
+  text-transform: uppercase; color: var(--laranja-700); margin-bottom: 1.5mm;
+}
+
+h2 {
+  font-size: 13.5pt; font-weight: 800; color: var(--petroleo-900);
+  margin: 9mm 0 2.5mm; letter-spacing: -0.2pt;
+  page-break-after: avoid;
+}
+h3 {
+  font-size: 10.8pt; font-weight: 700; color: var(--petroleo-700);
+  margin: 6mm 0 1.5mm; page-break-after: avoid;
+}
+h4 {
+  font-size: 9.6pt; font-weight: 700; color: var(--tinta);
+  margin: 4mm 0 1mm; page-break-after: avoid;
+}
+h2 .num, h3 .num {
+  color: var(--laranja-500); font-variant-numeric: tabular-nums;
+  margin-right: 2.5mm; font-weight: 800;
+}
+
+p { margin: 0 0 2.6mm; text-align: justify; hyphens: auto; }
+strong { font-weight: 700; color: var(--petroleo-900); }
+code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 8.6pt;
+       background: var(--petroleo-50); padding: 0.3mm 1mm; border-radius: 1mm; color: var(--petroleo-800); }
+
+ul, ol { margin: 0 0 3mm; padding-left: 5.5mm; }
+li { margin-bottom: 1.2mm; }
+li::marker { color: var(--laranja-500); }
+
+a { color: var(--petroleo-700); text-decoration: none; }
+
+/* ---------- Sumário ---------- */
+
+.sumario { list-style: none; padding: 0; margin: 6mm 0 0; column-count: 2; column-gap: 12mm; }
+.sumario li { margin: 0; break-inside: avoid; }
+.sumario a { display: flex; gap: 2.5mm; padding: 0.9mm 0; }
+.sumario .s-num { color: var(--laranja-600, #d1780c); font-weight: 700; font-variant-numeric: tabular-nums;
+                  min-width: 9mm; font-size: 8.4pt; }
+.sumario .n2 > a { font-weight: 700; color: var(--petroleo-900); font-size: 9.4pt;
+                   margin-top: 2.5mm; border-top: 0.5pt solid var(--borda); padding-top: 2mm; }
+.sumario .n3 > a { padding-left: 4mm; font-size: 8.8pt; color: var(--tinta-suave); }
+.sumario .n3 .s-num { min-width: 11mm; font-weight: 600; color: var(--tinta-clara); }
+
+/* ---------- Código ---------- */
+
+figure.codigo { margin: 3mm 0 4mm; break-inside: avoid; }
+figure.codigo figcaption {
+  font-size: 7.8pt; font-weight: 700; text-transform: uppercase; letter-spacing: .07em;
+  color: var(--tinta-clara); margin-bottom: 1.2mm;
+}
+figure.codigo pre {
+  margin: 0; padding: 3mm 3.5mm; background: #0d2426; color: #d7e6e4;
+  border-radius: 2mm; overflow: hidden;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 7.4pt; line-height: 1.5;
+}
+figure.codigo code { background: none; padding: 0; color: inherit; font-size: inherit; }
+/* Cada linha é uma faixa flex: a continuação de uma linha longa alinha sob o
+   código, não sob o número. */
+figure.codigo .linha { display: flex; gap: 2mm; }
+figure.codigo .ln {
+  flex: 0 0 6mm; text-align: right; color: #4a6b6c; user-select: none;
+}
+figure.codigo .txt { flex: 1; white-space: pre-wrap; word-break: break-word; }
+/* Trechos longos podem quebrar entre páginas — melhor do que uma página
+   quase vazia antes de um bloco de 60 linhas. */
+figure.codigo.longo { break-inside: auto; }
+
+/* ---------- Tabelas ---------- */
+
+table {
+  width: 100%; border-collapse: collapse; margin: 3mm 0 4mm;
+  font-size: 8.6pt; break-inside: avoid;
+}
+table.longa { break-inside: auto; }
+thead { background: var(--petroleo-50); }
+th {
+  text-align: left; font-size: 7.6pt; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--petroleo-700); font-weight: 800; padding: 1.8mm 2mm;
+  border-bottom: 1pt solid var(--petroleo-100);
+}
+td { padding: 1.6mm 2mm; border-bottom: 0.4pt solid var(--borda); vertical-align: top; }
+td code { font-size: 8pt; }
+tbody tr:nth-child(even) { background: #fafcfc; }
+table .num-col { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* ---------- Caixas ---------- */
+
+.nota, .atencao, .decisao {
+  margin: 3.5mm 0; padding: 3mm 4mm; border-radius: 2mm; font-size: 9.1pt;
+  break-inside: avoid; border-left: 2.5pt solid;
+}
+.nota    { background: var(--petroleo-50); border-color: var(--petroleo-600); }
+.atencao { background: #fff5f5; border-color: var(--risco); }
+.decisao { background: var(--laranja-50); border-color: var(--laranja-500); }
+.nota .rotulo, .atencao .rotulo, .decisao .rotulo {
+  display: block; font-size: 7.6pt; font-weight: 800; text-transform: uppercase;
+  letter-spacing: .1em; margin-bottom: 1.2mm;
+}
+.nota .rotulo    { color: var(--petroleo-700); }
+.atencao .rotulo { color: var(--risco); }
+.decisao .rotulo { color: var(--laranja-700); }
+.nota p:last-child, .atencao p:last-child, .decisao p:last-child { margin-bottom: 0; }
+
+/* ---------- Diagramas ---------- */
+
+figure.diagrama { margin: 4mm 0 5mm; break-inside: avoid; text-align: center; }
+figure.diagrama svg { max-width: 100%; height: auto; }
+figure.diagrama figcaption {
+  font-size: 8.2pt; color: var(--tinta-suave); margin-top: 2mm; text-align: center;
+}
+
+/* ---------- Árvore de diretórios ---------- */
+
+pre.arvore {
+  margin: 3mm 0 4mm; padding: 3mm 4mm; background: var(--fundo);
+  border: 0.5pt solid var(--borda); border-radius: 2mm;
+  font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 7.6pt;
+  line-height: 1.62; white-space: pre; overflow: hidden;
+}
+pre.arvore .c { color: var(--tinta-clara); }
+pre.arvore .d { color: var(--petroleo-700); font-weight: 700; }
+
+/* ---------- Indicadores ---------- */
+
+.numeros { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2.5mm; margin: 4mm 0 5mm; }
+.numeros div {
+  border: 0.5pt solid var(--borda); border-radius: 2mm; padding: 2.5mm 3mm; background: #fff;
+}
+.numeros .v { font-size: 15pt; font-weight: 800; color: var(--petroleo-900); font-variant-numeric: tabular-nums; }
+.numeros .r { font-size: 7.6pt; color: var(--tinta-suave); text-transform: uppercase; letter-spacing: .05em; }
+
+.dupla { display: grid; grid-template-columns: 1fr 1fr; gap: 6mm; }
+.evitar-quebra { break-inside: avoid; }

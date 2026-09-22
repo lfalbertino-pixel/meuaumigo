@@ -1,0 +1,112 @@
+<section class="pagina">
+<h1 class="titulo-parte"><span class="parte">Parte X</span>Operação</h1>
+
+<h2 id="op-deploy"><span class="num">36</span>Deploy</h2>
+
+<figure class="codigo"><figcaption>subir ou atualizar</figcaption><pre><code>cd /srv/meuaumigo   <span style="color:#7fa0a0"># onde o projeto foi clonado</span>
+docker compose build
+docker compose up -d
+docker compose logs -f app</code></pre></figure>
+
+<p>O entrypoint aplica as migrações pendentes, reaplica os privilégios e chama a
+semente (que não faz nada se já houver animal cadastrado). O healthcheck leva
+até 40 segundos para o primeiro sinal verde.</p>
+
+<h3 id="op-primeira"><span class="num">36.1</span>Instalação em máquina nova</h3>
+
+<figure class="codigo"><figcaption>banco — uma vez, no host</figcaption><pre><code>CREATE ROLE meuaumigo_owner LOGIN PASSWORD '...';
+CREATE ROLE meuaumigo_app   LOGIN PASSWORD '...';
+CREATE DATABASE meuaumigo OWNER meuaumigo_owner;
+REVOKE ALL ON DATABASE meuaumigo FROM PUBLIC;
+GRANT CONNECT ON DATABASE meuaumigo TO meuaumigo_app;
+-- conectado em meuaumigo:
+ALTER SCHEMA public OWNER TO meuaumigo_owner;
+REVOKE ALL ON SCHEMA public FROM PUBLIC;</code></pre></figure>
+
+<figure class="codigo"><figcaption>firewall e aplicação</figcaption><pre><code>ufw allow from 172.16.61.0/24 to any port 5432 proto tcp comment 'meuaumigo docker network'
+cp .env.example .env   # preencher DATABASE_URL e DATABASE_URL_OWNER
+docker compose up -d --build</code></pre></figure>
+
+<h2 id="op-rotina"><span class="num">37</span>Rotina mensal da equipe</h2>
+
+<p>Não há agendador. Todo mês, em <code>/financeiro</code>:</p>
+
+<ol>
+<li><strong>Gerar mensalidades do mês</strong> — cria um lançamento pendente por
+apadrinhamento ativo. Idempotente: pode ser clicado duas vezes sem duplicar.</li>
+<li><strong>Marcar vencidas como atrasadas</strong> — move para
+<code>ATRASADA</code> o que passou do vencimento e continua pendente.</li>
+<li><strong>Conferir o extrato</strong> e confirmar cada pagamento, escolhendo a
+forma. A confirmação grava <code>pagoEm</code> e alimenta o painel, os relatórios
+e o rateio que o padrinho vê.</li>
+</ol>
+
+<p>Ao longo do mês, o trabalho do dia a dia acontece na ficha de cada animal: a
+novidade para os padrinhos, o registro de saúde, o marco do diário e a foto.
+Esses quatro estão juntos num painel de abas justamente porque são o que a equipe
+faz todo dia, e quase sempre pelo celular.</p>
+
+<h2 id="op-backup"><span class="num">38</span>Backup</h2>
+
+<figure class="codigo"><figcaption>duas coisas, mesma prioridade</figcaption><pre><code># banco
+pg_dump -h localhost -U meuaumigo_owner meuaumigo | gzip &gt; meuaumigo-$(date +%F).sql.gz
+
+# mídia — fotos dos animais e comprovantes de despesa
+docker run --rm -v meuaumigo_midia:/dados -v "$PWD":/saida alpine \
+  tar czf /saida/meuaumigo-midia-$(date +%F).tar.gz -C /dados .</code></pre></figure>
+
+<div class="nota">
+  <span class="rotulo">Não pule o segundo</span>
+  <p>A foto do animal é metade da captação da ONG. Um banco restaurado sem as
+  fotos devolve um sistema que ninguém quer usar — noventa cartões com retrato
+  gerado e nenhuma história visual.</p>
+</div>
+
+<h2 id="op-problemas"><span class="num">39</span>Diagnóstico</h2>
+
+<h3 id="op-tres"><span class="num">39.1</span>Os três erros recorrentes desta VPS</h3>
+
+<table class="longa">
+<thead><tr><th style="width:30%">Sintoma</th><th>Causa e correção</th></tr></thead>
+<tbody>
+<tr><td><code>P1001: Can't reach database server</code> no boot</td>
+<td><strong>1. Host errado no <code>.env</code>.</strong> De dentro do container o Postgres é <code>host.docker.internal</code>, nunca <code>localhost</code>. Confira com <code>docker compose exec app printenv DATABASE_URL</code>.</td></tr>
+<tr><td>Mesmo sintoma, <code>.env</code> correto</td>
+<td><strong>2. Firewall não liberado.</strong> <code>ufw status | grep 172.16.61</code> — se não aparecer, aplique a regra da seção 36.1.</td></tr>
+<tr><td>Funcionava e parou depois de recriar</td>
+<td><strong>3. Subnet mudou.</strong> Alguém removeu a fixação em <code>ipam.config.subnet</code> e o Docker sorteou outra faixa. A regra do ufw aponta para a faixa antiga. Restaure a fixação e recrie a rede.</td></tr>
+</tbody>
+</table>
+
+<h3 id="op-outros"><span class="num">39.2</span>Outros diagnósticos</h3>
+
+<table class="longa">
+<thead><tr><th style="width:30%">Sintoma</th><th>Onde olhar</th></tr></thead>
+<tbody>
+<tr><td>Container <code>unhealthy</code></td><td><code>curl localhost:1046/api/health</code>. A rota executa <code>SELECT 1</code>; se devolver 503, o problema é banco, não aplicação.</td></tr>
+<tr><td>Datas e valores com três horas de diferença</td><td><code>TZ</code> ausente no compose. Confira com <code>docker compose exec app date</code>.</td></tr>
+<tr><td>Tela de IA diz “não configurado”</td><td><code>ANTHROPIC_API_KEY</code> vazia. É comportamento esperado, não erro.</td></tr>
+<tr><td>Foto some depois de recriar o container</td><td>O volume <code>meuaumigo_midia</code> foi removido. <code>docker volume ls | grep meuaumigo</code>.</td></tr>
+<tr><td>Ninguém consegue entrar</td><td>Use o script de emergência (abaixo). Ele reativa a conta junto, porque quem o executa quase sempre está destrancando a porta.</td></tr>
+<tr><td><code>Failed to find Server Action</code></td><td>Aba antiga aberta durante um deploy. O identificador da ação muda a cada build; basta recarregar.</td></tr>
+</tbody>
+</table>
+
+<figure class="codigo"><figcaption>destrancar o acesso</figcaption><pre><code>docker compose exec app node_modules/.bin/tsx scripts/criar-usuario.ts \
+  "Nome da Pessoa" email@ong.com.br senhaSegura ADMIN</code></pre></figure>
+
+<h3 id="op-onde"><span class="num">39.3</span>Onde as coisas estão</h3>
+
+<table>
+<thead><tr><th style="width:34%">Item</th><th>Valor</th></tr></thead>
+<tbody>
+<tr><td>Diretório do projeto</td><td>onde o repositório foi clonado no servidor</td></tr>
+<tr><td>Container / imagem</td><td><code>meuaumigo-app</code> / <code>meuaumigo:latest</code></td></tr>
+<tr><td>Porta publicada</td><td><code>1046</code> (Cloudflare Tunnel aponta para ela)</td></tr>
+<tr><td>Rede / subnet</td><td><code>meuaumigo-net</code> / <code>172.16.61.0/24</code></td></tr>
+<tr><td>Volume de mídia</td><td><code>meuaumigo_midia</code> → <code>/app/storage</code></td></tr>
+<tr><td>Banco</td><td><code>meuaumigo</code>, no PostgreSQL do host</td></tr>
+<tr><td>Papéis</td><td><code>meuaumigo_app</code> · <code>meuaumigo_owner</code></td></tr>
+</tbody>
+</table>
+</section>

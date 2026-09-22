@@ -1,0 +1,241 @@
+<section class="pagina">
+<h1 class="titulo-parte"><span class="parte">Parte IV</span>Regras de negócio</h1>
+
+<p>Esta é a parte do documento que mais vale ler antes de alterar código. Quase
+toda regra aqui existe para resolver um conflito real entre duas coisas
+desejáveis, e a escolha está registrada junto com o motivo.</p>
+
+<h2 id="regra-custo"><span class="num">11</span>Custo estimado × gasto real</h2>
+
+<p>O sistema mantém <strong>dois números diferentes</strong> para o custo de um
+animal, e confundi-los é o erro mais fácil de cometer aqui.</p>
+
+<table>
+<thead><tr><th style="width:26%">&nbsp;</th><th style="width:37%">Custo estimado</th><th>Gasto real</th></tr></thead>
+<tbody>
+<tr><td><strong>Onde mora</strong></td><td>Campos do próprio <code>Animal</code></td><td>Tabela <code>Despesa</code></td></tr>
+<tr><td><strong>Quem define</strong></td><td>A equipe, revisando à mão</td><td>Os lançamentos do dia a dia</td></tr>
+<tr><td><strong>Para que serve</strong></td><td>Meta pública de custeio, valor de referência do apadrinhamento</td><td>Prestação de contas, relatórios, rateio</td></tr>
+<tr><td><strong>Estabilidade</strong></td><td>Muda raramente</td><td>Muda todo dia</td></tr>
+</tbody>
+</table>
+
+<div class="decisao">
+  <span class="rotulo">Decisão</span>
+  <p>A barra de meta da página pública usa o <strong>estimado</strong>, não o
+  gasto do mês. O apadrinhamento é recorrente e precisa de um alvo estável: um
+  mês com cirurgia não pode fazer a meta do Thor saltar de R$ 500 para R$ 3.000
+  na vitrine e desanimar quem ia contribuir com R$ 50. Para despesa excepcional
+  existe <strong>campanha</strong> (seção 18).</p>
+</div>
+
+{{cod:calcular-custo|ts|src/server/custos.ts — a cobertura da meta}}
+
+<p>Três detalhes dessa função valem atenção. O percentual é travado em 100 —
+apoio acima da meta não vira 140% na barra. Um animal sem custo cadastrado mas
+com padrinho conta como 100%, não como divisão por zero. E a função não consulta
+o banco: recebe os apadrinhamentos já carregados pela página, o que permite
+calcular a cobertura de noventa animais na vitrine sem noventa consultas.</p>
+
+<h2 id="regra-competencia"><span class="num">12</span>Competência: como o mês fecha</h2>
+
+<p>Uma mensalidade pertence ao mês que ela <em>cobre</em>, não ao dia em que o
+dinheiro entrou. Quem paga setembro no dia 3 de outubro pagou setembro.</p>
+
+<ul>
+<li><strong>Contribuição</strong> conta pelo campo <code>competencia</code>,
+sempre no dia 1 do mês de referência.</li>
+<li><strong>Despesa</strong> conta pela <code>data</code> do lançamento, porque
+o gasto aconteceu naquele dia.</li>
+</ul>
+
+<p>Essa assimetria é intencional e está anotada no rodapé das telas de painel e
+financeiro, para que ninguém tente conciliar os dois números com a régua
+errada. Todo o cálculo de mês passa por <code>src/server/periodo.ts</code>, que
+é o único lugar do sistema autorizado a decidir onde um mês começa.</p>
+
+<div class="atencao">
+  <span class="rotulo">Fuso horário</span>
+  <p><code>inicioDoMes()</code> usa o fuso do processo. O
+  <code>docker-compose.yml</code> fixa <code>TZ=America/Sao_Paulo</code> porque a
+  imagem base roda em UTC — e, sem isso, no dia 1º toda competência calculada
+  entre 21h e 23h59 cairia no mês seguinte. Mexer nessa variável quebra o
+  fechamento financeiro de forma silenciosa.</p>
+</div>
+
+<h2 id="regra-rateio"><span class="num">13</span>O rateio da contribuição</h2>
+
+<p>É o cálculo que sustenta a promessa do produto: mostrar ao padrinho em que o
+dinheiro dele virou cuidado. Recebe o animal, o valor pago e a competência, e
+devolve a divisão por categoria.</p>
+
+{{cod:ratear|ts|src/server/custos.ts — ratearContribuicao()}}
+
+<p>O algoritmo tem três camadas de cuidado:</p>
+
+<ol>
+<li><strong>Base real primeiro.</strong> Agrupa as despesas daquele animal
+naquele mês por categoria e usa essa proporção. É o retrato honesto.</li>
+<li><strong>Queda para a estimativa.</strong> Quando o animal não teve despesa
+lançada no mês — o que acontece e é normal —, usa a proporção do custo estimado.
+A tela deixa claro que, nesse caso, é previsão.</li>
+<li><strong>O total sempre bate.</strong> O arredondamento de centavos sobra ou
+falta alguns trocados; a diferença é jogada na maior linha. A pessoa nunca vê
+uma soma diferente da que saiu da conta dela — e é esse detalhe que impede uma
+conversa constrangedora no WhatsApp da ONG.</li>
+</ol>
+
+<h2 id="regra-apadrinhamento"><span class="num">14</span>Ciclo do apadrinhamento</h2>
+
+<h3 id="regra-nascimento"><span class="num">14.1</span>Nascimento</h3>
+
+<p>É o único fluxo de escrita aberto a quem não tem login, e por isso é o mais
+conservador do sistema. O padrinho é identificado pelo e-mail com
+<code>upsert</code>; a atualização só preenche campos vazios, para que um
+cadastro antigo e mais completo não seja esvaziado por um formulário preenchido
+às pressas. Em seguida, uma transação:</p>
+
+{{cod:apadrinhar-transacao|ts|actions.ts — a transação do apadrinhamento}}
+
+<p>A primeira mensalidade já nasce junto, pendente. Sem isso, o apadrinhamento
+ficaria invisível no financeiro até alguém lembrar de lançá-lo — e ninguém
+lembra.</p>
+
+<h3 id="regra-mensalidades"><span class="num">14.2</span>Cobrança mensal</h3>
+
+<p>Não há agendador na VPS. Quem dispara a cobrança é a equipe, por um botão em
+<code>/financeiro</code>. Um botão é clicado duas vezes, então a ação foi escrita
+para ser idempotente:</p>
+
+{{cod:gerar-mensalidades|ts|financeiro/actions.ts — geração idempotente}}
+
+<p>A idempotência vem do conjunto <code>jaLancados</code>: apadrinhamento que já
+tem lançamento naquela competência é simplesmente pulado, e a ação informa
+quantas mensalidades foram criadas — ou que já estavam todas geradas.</p>
+
+<h3 id="regra-fim"><span class="num">14.3</span>Pausa e cancelamento</h3>
+
+<p>A interface trata os dois de formas deliberadamente assimétricas. Pausar é um
+clique e volta com outro. Cancelar abre um campo de motivo obrigatório antes de
+confirmar, porque encerra o vínculo e tem consequência financeira:</p>
+
+<ul>
+<li>o <code>fim</code> é gravado e alimenta o gráfico de cancelamentos do painel
+— reativar limpa o campo, senão o mês antigo continuaria contando a saída;</li>
+<li>toda mensalidade <code>PENDENTE</code> ou <code>ATRASADA</code> daquele
+apadrinhamento vira <code>CANCELADA</code>. Cobrar mensalidade futura de quem
+cancelou é cobrança indevida;</li>
+<li>o que já foi pago permanece intocado — é história.</li>
+</ul>
+
+<h2 id="regra-saude"><span class="num">15</span>Saúde amarrada ao financeiro</h2>
+
+<p>Quando a equipe registra um atendimento com valor, ele vira despesa daquele
+animal <strong>na mesma transação</strong>, com o vínculo guardado em
+<code>Despesa.registroSaudeId</code> — não uma cópia solta.</p>
+
+{{cod:saude-transacao|ts|saude/actions.ts — registro clínico e seus efeitos}}
+
+<p>Essa transação faz quatro coisas além de gravar o registro:</p>
+
+<ul>
+<li>cria a despesa, classificando-a como medicamento ou veterinário conforme o tipo;</li>
+<li>uma <strong>pesagem</strong> atualiza o peso atual do animal, para que a
+ficha não fique mostrando o peso de quando ele chegou;</li>
+<li>uma <strong>castração</strong> marca o animal como castrado;</li>
+<li>castração e vacina entram no diário público, porque são marcos que o padrinho
+quer ver. Consulta e exame ficam só na ficha clínica — o diário é biografia, não
+prontuário.</li>
+</ul>
+
+<h2 id="regra-estoque"><span class="num">16</span>Estoque: saldo é consequência</h2>
+
+<p>O saldo de um item nunca é digitado. Ele é calculado a partir do tipo de
+movimento e aplicado com <code>increment</code> dentro da transação:</p>
+
+{{cod:estoque-delta|ts|alimentacao/actions.ts — o delta do movimento}}
+
+<p>Um <strong>ajuste de inventário</strong> informa o saldo contado, e o sistema
+deriva a diferença — é assim que a contagem física entra sem quebrar a
+rastreabilidade. Saída que deixaria o saldo negativo é recusada com uma mensagem
+que diz quanto há em estoque, em vez de um erro genérico.</p>
+
+<p>Uma <strong>entrada com valor</strong> também vira despesa de alimentação (ou
+medicamento, ou higiene, conforme o tipo do item), para que a compra de ração
+apareça no financeiro sem ninguém lançar duas vezes.</p>
+
+<p>A previsão de dias exibida na tela de alimentação é o saldo total de ração
+dividido pelo consumo médio diário dos últimos 30 dias — calculado a partir dos
+movimentos de saída, não de uma média digitada.</p>
+
+<h2 id="regra-adocao"><span class="num">17</span>Funil de adoção</h2>
+
+<p>Sete status, mas a interface só oferece o <strong>próximo passo</strong>
+possível:</p>
+
+<figure class="diagrama">
+<svg viewBox="0 0 700 96" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, sans-serif">
+  <defs><marker id="s3" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+    <path d="M0,0 L7,3.5 L0,7 z" fill="#8c9895"/></marker></defs>
+  <g font-size="10">
+    <rect x="4"   y="18" width="94" height="30" rx="6" fill="#e2eae8"/><text x="51"  y="37" text-anchor="middle" fill="#182321">INTERESSE</text>
+    <rect x="120" y="18" width="98" height="30" rx="6" fill="#ffedcf"/><text x="169" y="37" text-anchor="middle" fill="#874712">ENTREVISTA</text>
+    <rect x="240" y="18" width="80" height="30" rx="6" fill="#ffedcf"/><text x="280" y="37" text-anchor="middle" fill="#874712">VISITA</text>
+    <rect x="342" y="18" width="92" height="30" rx="6" fill="#d9ecea"/><text x="388" y="37" text-anchor="middle" fill="#143d3f">APROVADA</text>
+    <rect x="456" y="18" width="100" height="30" rx="6" fill="#0a292b"/><text x="506" y="37" text-anchor="middle" fill="#fff">CONCLUÍDA</text>
+    <line x1="100" y1="33" x2="116" y2="33" stroke="#8c9895" marker-end="url(#s3)"/>
+    <line x1="220" y1="33" x2="236" y2="33" stroke="#8c9895" marker-end="url(#s3)"/>
+    <line x1="322" y1="33" x2="338" y2="33" stroke="#8c9895" marker-end="url(#s3)"/>
+    <line x1="436" y1="33" x2="452" y2="33" stroke="#8c9895" marker-end="url(#s3)"/>
+    <rect x="584" y="18" width="112" height="30" rx="6" fill="#fff" stroke="#b0243a" stroke-dasharray="3 2"/>
+    <text x="640" y="37" text-anchor="middle" fill="#b0243a" font-size="9">RECUSADA · DESISTÊNCIA</text>
+    <text x="350" y="72" text-anchor="middle" fill="#556360" font-size="9">
+      cada avanço muda o status do animal na vitrine pública; a recusa só o devolve se nenhum outro processo estiver correndo
+    </text>
+  </g>
+</svg>
+<figcaption>O funil. Status intermediários colocam o animal em EM_PROCESSO_ADOCAO; a conclusão o marca como ADOTADO e o retira da vitrine.</figcaption>
+</figure>
+
+{{cod:adocao-transacao|ts|adocoes/actions.ts — o funil e o status do animal}}
+
+<div class="nota">
+  <span class="rotulo">Por que não um seletor com os sete status</span>
+  <p>Um <code>&lt;select&gt;</code> deixaria “concluída” a um clique de distância
+  de “interesse”. Concluir uma adoção marca o animal como adotado, o desativa e
+  fecha a página pública dele. A interface oferece apenas as transições legítimas
+  a partir do estado atual — a regra do funil vive na tela <em>e</em> na ação.</p>
+</div>
+
+<p>Repare na contagem de <code>outros</code> antes de devolver o animal à
+vitrine: se duas pessoas estavam interessadas e uma desistiu, o animal continua
+em processo por causa da outra.</p>
+
+<h2 id="regra-campanha"><span class="num">18</span>Campanhas e reconhecimento</h2>
+
+<h3 id="regra-campanha-arrecadado"><span class="num">18.1</span>Campanha</h3>
+
+<p>O valor arrecadado de uma campanha <strong>não é um campo</strong>. É sempre a
+soma das contribuições com status <code>PAGA</code> ligadas a ela. Guardar um
+total seria criar um número que pode ficar desatualizado — e o número errado
+aqui aparece em letra garrafal numa página pública.</p>
+
+<p>A tela da ONG mostra separadamente o que já foi confirmado e o que está
+aguardando conferência, para que a equipe saiba que a barra vai subir.</p>
+
+<h3 id="regra-conquistas"><span class="num">18.2</span>Gamificação</h3>
+
+<p>Reconhecimento, não competição: não há ranking, pontuação nem comparação entre
+padrinhos. O que existe é lembrar à pessoa há quanto tempo ela sustenta aquele
+animal, porque é isso que segura o apadrinhamento no décimo terceiro mês.</p>
+
+{{cod:gamificacao|ts|src/server/gamificacao.ts}}
+
+<div class="decisao">
+  <span class="rotulo">Decisão</span>
+  <p>Conquistas são <strong>derivadas a cada render</strong>, nunca gravadas.
+  Conquista armazenada é conquista que fica errada quando o dado muda — um
+  apadrinhamento corrigido para trás faria a medalha de “1 ano” mentir para
+  sempre. O custo é recalcular; o benefício é nunca ter de reconciliar.</p>
+</div>
+</section>

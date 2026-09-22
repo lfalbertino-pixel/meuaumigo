@@ -1,0 +1,45 @@
+{
+  "name": "meuaumigo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Meu AUmigo — apadrinhamento, cuidado e adoção: da ONG ao padrinho, a história de cada animal",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "prisma generate && next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "prisma:generate": "prisma generate",
+    "prisma:deploy": "prisma migrate deploy",
+    "prisma:migrate": "prisma migrate dev",
+    "db:seed": "tsx prisma/seed.ts",
+    "usuario:criar": "tsx scripts/criar-usuario.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.68.0",
+    "@node-rs/argon2": "^2.0.2",
+    "@prisma/client": "^6.19.3",
+    "next": "^15.5.25",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.10",
+    "@types/react": "^19.0.10",
+    "@types/react-dom": "^19.0.4",
+    "autoprefixer": "^10.4.21",
+    "eslint": "^9.22.0",
+    "eslint-config-next": "^15.5.25",
+    "postcss": "^8.5.3",
+    "prisma": "^6.19.3",
+    "tailwindcss": "^3.4.19",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.2",
+    "vitest": "^3.0.9"
+  }
+}

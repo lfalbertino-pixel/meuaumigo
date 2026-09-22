@@ -1,0 +1,238 @@
+<section class="pagina">
+<h1 class="titulo-parte"><span class="parte">Apêndices</span>Referência</h1>
+
+<h2 id="ap-arquivos"><span class="num">A</span>Referência de arquivos</h2>
+
+<p>Todos os arquivos de código do projeto, com a contagem de linhas e o papel de
+cada um. Somam 15.454 linhas em 116 arquivos; <code>node_modules</code>,
+artefatos de build e mídia não entram na conta.</p>
+
+<h4>Banco de dados</h4>
+<table class="longa"><thead><tr><th style="width:38%">Arquivo</th><th style="width:8%" class="num-col">Linhas</th><th>Papel</th></tr></thead><tbody>
+<tr><td><code>prisma/migrations/0001_init/migration.sql</code></td><td class="num-col">608</td><td>Migração inicial gerada pelo Prisma, versionada</td></tr>
+<tr><td><code>prisma/schema.prisma</code></td><td class="num-col">728</td><td>20 modelos, 20 enums — a fonte da verdade do modelo de dados</td></tr>
+<tr><td><code>prisma/seed.ts</code></td><td class="num-col">984</td><td>Semente de demonstração: 12 meses de história fictícia, com duas salvaguardas</td></tr>
+<tr><td><code>prisma/sql/grants.sql</code></td><td class="num-col">31</td><td>Privilégios do papel da aplicação; idempotente, roda a cada deploy</td></tr>
+</tbody></table>
+<h4>Infraestrutura da aplicação (src/lib)</h4>
+<table class="longa"><thead><tr><th style="width:38%">Arquivo</th><th style="width:8%" class="num-col">Linhas</th><th>Papel</th></tr></thead><tbody>
+<tr><td><code>src/lib/auth.ts</code></td><td class="num-col">187</td><td>Sessão, os quatro portões de papel, CSRF e auditoria</td></tr>
+<tr><td><code>src/lib/crypto.ts</code></td><td class="num-col">28</td><td>Argon2id para senha; token de sessão e seu hash SHA-256</td></tr>
+<tr><td><code>src/lib/db.ts</code></td><td class="num-col">18</td><td>Prisma Client único, com o papel de aplicação</td></tr>
+<tr><td><code>src/lib/env.ts</code></td><td class="num-col">38</td><td>Ambiente tipado com Zod; segredo ausente derruba o boot</td></tr>
+<tr><td><code>src/lib/format.ts</code></td><td class="num-col">361</td><td>Dinheiro, datas, idade, faixa etária e os rótulos de todos os enums</td></tr>
+<tr><td><code>src/lib/paleta.ts</code></td><td class="num-col">38</td><td>Cores dos gráficos — fora do módulo de cliente, de propósito</td></tr>
+<tr><td><code>src/lib/slug.ts</code></td><td class="num-col">28</td><td>Endereço público do animal; sufixo numérico para nomes repetidos</td></tr>
+<tr><td><code>src/lib/storage.ts</code></td><td class="num-col">77</td><td>Mídia em disco; nome de arquivo sempre gerado pelo sistema</td></tr>
+</tbody></table>
+<h4>Regras de negócio (src/server)</h4>
+<table class="longa"><thead><tr><th style="width:38%">Arquivo</th><th style="width:8%" class="num-col">Linhas</th><th>Papel</th></tr></thead><tbody>
+<tr><td><code>src/server/config.ts</code></td><td class="num-col">28</td><td>Configuração da ONG, memoizada por requisição</td></tr>
+<tr><td><code>src/server/custos.ts</code></td><td class="num-col">137</td><td>Cobertura da meta e o rateio da contribuição por categoria</td></tr>
+<tr><td><code>src/server/gamificacao.ts</code></td><td class="num-col">75</td><td>Conquistas derivadas dos apadrinhamentos, nunca armazenadas</td></tr>
+<tr><td><code>src/server/ia/assistente.ts</code></td><td class="num-col">79</td><td>Prompt de sistema, limites e a chamada à API da Claude</td></tr>
+<tr><td><code>src/server/ia/contexto.ts</code></td><td class="num-col">134</td><td>Monta o retrato agregado que vai ao modelo; sem dado pessoal</td></tr>
+<tr><td><code>src/server/padrinho.ts</code></td><td class="num-col">159</td><td>A área do padrinho: animais, rateio, conquistas e notificações</td></tr>
+<tr><td><code>src/server/painel.ts</code></td><td class="num-col">266</td><td>Agregados do painel (um Promise.all) e os números de impacto</td></tr>
+<tr><td><code>src/server/periodo.ts</code></td><td class="num-col">33</td><td>Competência mensal — o único lugar que decide onde um mês começa</td></tr>
+<tr><td><code>src/server/publico.ts</code></td><td class="num-col">197</td><td>Vitrine com filtros e o perfil público do animal</td></tr>
+<tr><td><code>src/server/relatorios.ts</code></td><td class="num-col">138</td><td>Retenção, cobrado × recebido, concentração de custo, descobertos</td></tr>
+<tr><td><code>src/server/transparencia.ts</code></td><td class="num-col">86</td><td>Prestação de contas pública; só o que foi marcado como público</td></tr>
+</tbody></table>
+<h4>Componentes compartilhados</h4>
+<table class="longa"><thead><tr><th style="width:38%">Arquivo</th><th style="width:8%" class="num-col">Linhas</th><th>Papel</th></tr></thead><tbody>
+<tr><td><code>src/components/BarraUsuario.tsx</code></td><td class="num-col">29</td><td>Identidade do usuário e a ação de sair</td></tr>
+<tr><td><code>src/components/CartaoAnimal.tsx</code></td><td class="num-col">79</td><td>O cartão da vitrine pública</td></tr>
+<tr><td><code>src/components/Compartilhar.tsx</code></td><td class="num-col">58</td><td>navigator.share, com queda para área de transferência e WhatsApp</td></tr>
+<tr><td><code>src/components/FotoAnimal.tsx</code></td><td class="num-col">91</td><td>Foto real ou retrato SVG gerado a partir do nome</td></tr>
+<tr><td><code>src/components/Graficos.tsx</code></td><td class="num-col">478</td><td>Barras, linha, rosca e medidor em SVG, com hover e tabela equivalente</td></tr>
+<tr><td><code>src/components/Icones.tsx</code></td><td class="num-col">237</td><td>23 ícones desenhados à mão, traço 1,8</td></tr>
+<tr><td><code>src/components/Link.tsx</code></td><td class="num-col">33</td><td>next/link com fio de progresso via useLinkStatus</td></tr>
+<tr><td><code>src/components/Marca.tsx</code></td><td class="num-col">42</td><td>Logo, em versão completa e compacta</td></tr>
+<tr><td><code>src/components/Navegacao.tsx</code></td><td class="num-col">146</td><td>Lateral no desktop; tira rolável de pílulas no celular</td></tr>
+<tr><td><code>src/components/ui.tsx</code></td><td class="num-col">217</td><td>Cartao, TituloPagina, Indicador, BarraMeta, Tabela, Aviso, Linha, Vazio</td></tr>
+</tbody></table>
+<h4>Site público</h4>
+<table class="longa"><thead><tr><th style="width:38%">Arquivo</th><th style="width:8%" class="num-col">Linhas</th><th>Papel</th></tr></thead><tbody>
+<tr><td><code>src/app/(auth)/entrar/Formulario.tsx</code></td><td class="num-col">50</td><td>Formulário com useActionState</td></tr>
+<tr><td><code>src/app/(auth)/entrar/actions.ts</code></td><td class="num-col">66</td><td>entrar() e sair(); mensagem única e tempo constante</td></tr>
+<tr><td><code>src/app/(auth)/entrar/page.tsx</code></td><td class="num-col">30</td><td>Tela de login; redireciona quem já tem sessão</td></tr>
+<tr><td><code>src/app/(auth)/layout.tsx</code></td><td class="num-col">13</td><td>Moldura do login, com fundo de patinhas</td></tr>
+<tr><td><code>src/app/(publico)/adotar/[slug]/Formulario.tsx</code></td><td class="num-col">125</td><td>Moradia, outros animais e rotina</td></tr>
+<tr><td><code>src/app/(publico)/adotar/[slug]/actions.ts</code></td><td class="num-col">90</td><td>manifestarInteresse(): abre processo em INTERESSE</td></tr>
+<tr><td><code>src/app/(publico)/adotar/[slug]/page.tsx</code></td><td class="num-col">100</td><td>Formulário de interesse; recusa se indisponível</td></tr>
+<tr><td><code>src/app/(publico)/animais/[slug]/apadrinhar/Formulario.tsx</code></td><td class="num-col">219</td><td>Modalidades em cartões e os dados do padrinho</td></tr>
+<tr><td><code>src/app/(publico)/animais/[slug]/apadrinhar/actions.ts</code></td><td class="num-col">171</td><td>apadrinhar(): upsert do padrinho e a transação</td></tr>
+<tr><td><code>src/app/(publico)/animais/[slug]/apadrinhar/page.tsx</code></td><td class="num-col">99</td><td>Página de apadrinhamento com o resumo do custo</td></tr>
+<tr><td><code>src/app/(publico)/animais/[slug]/page.tsx</code></td><td class="num-col">391</td><td>Perfil público: história, galeria, saúde, diário, meta</td></tr>
+<tr><td><code>src/app/(publico)/animais/page.tsx</code></td><td class="num-col">212</td><td>Vitrine com busca e seis grupos de filtro em links</td></tr>
+<tr><td><code>src/app/(publico)/campanhas/[slug]/Formulario.tsx</code></td><td class="num-col">116</td><td>Doação com valores sugeridos</td></tr>
+<tr><td><code>src/app/(publico)/campanhas/[slug]/actions.ts</code></td><td class="num-col">74</td><td>doar(): registra como PENDENTE</td></tr>
+<tr><td><code>src/app/(publico)/campanhas/[slug]/page.tsx</code></td><td class="num-col">151</td><td>Página da campanha com meta e compartilhamento</td></tr>
+<tr><td><code>src/app/(publico)/campanhas/page.tsx</code></td><td class="num-col">119</td><td>Campanhas ativas e as que deram certo</td></tr>
+<tr><td><code>src/app/(publico)/impacto/page.tsx</code></td><td class="num-col">158</td><td>Transparência: impacto, fluxo, composição e comprovantes</td></tr>
+<tr><td><code>src/app/(publico)/layout.tsx</code></td><td class="num-col">116</td><td>Cabeçalho, navegação e rodapé do site público</td></tr>
+<tr><td><code>src/app/(publico)/page.tsx</code></td><td class="num-col">227</td><td>Home: conceito, campanha urgente, quem espera, impacto</td></tr>
+</tbody></table>
+<h4>Área do padrinho</h4>
+<table class="longa"><thead><tr><th style="width:38%">Arquivo</th><th style="width:8%" class="num-col">Linhas</th><th>Papel</th></tr></thead><tbody>
+<tr><td><code>src/app/(padrinho)/layout.tsx</code></td><td class="num-col">35</td><td>Moldura da área do padrinho</td></tr>
+<tr><td><code>src/app/(padrinho)/meus-aumigos/[slug]/page.tsx</code></td><td class="num-col">308</td><td>A tela central: como o animal está e onde vai o apoio</td></tr>
+<tr><td><code>src/app/(padrinho)/meus-aumigos/conquistas/page.tsx</code></td><td class="num-col">92</td><td>Tempo de amizade e conquistas</td></tr>
+<tr><td><code>src/app/(padrinho)/meus-aumigos/contribuicoes/page.tsx</code></td><td class="num-col">129</td><td>Histórico de pagamentos e a chave PIX</td></tr>
+<tr><td><code>src/app/(padrinho)/meus-aumigos/page.tsx</code></td><td class="num-col">260</td><td>Cartão por animal, novidades e notificações</td></tr>
+</tbody></table>
+<h4>Administração da ONG</h4>
+<table class="longa"><thead><tr><th style="width:38%">Arquivo</th><th style="width:8%" class="num-col">Linhas</th><th>Papel</th></tr></thead><tbody>
+<tr><td><code>src/app/(ong)/adocoes/Acoes.tsx</code></td><td class="num-col">65</td><td>Só o próximo passo legítimo do funil</td></tr>
+<tr><td><code>src/app/(ong)/adocoes/actions.ts</code></td><td class="num-col">104</td><td>Status da adoção e o reflexo no status do animal</td></tr>
+<tr><td><code>src/app/(ong)/adocoes/page.tsx</code></td><td class="num-col">124</td><td>Funil em andamento e processos encerrados</td></tr>
+<tr><td><code>src/app/(ong)/alimentacao/Formularios.tsx</code></td><td class="num-col">190</td><td>Movimento e cadastro de item</td></tr>
+<tr><td><code>src/app/(ong)/alimentacao/actions.ts</code></td><td class="num-col">133</td><td>Saldo como consequência do movimento; entrada vira despesa</td></tr>
+<tr><td><code>src/app/(ong)/alimentacao/page.tsx</code></td><td class="num-col">193</td><td>Estoque com medidores, previsão e movimentos</td></tr>
+<tr><td><code>src/app/(ong)/animais-ong/FormularioAnimal.tsx</code></td><td class="num-col">345</td><td>Formulário em quatro blocos, com o custo somando ao vivo</td></tr>
+<tr><td><code>src/app/(ong)/animais-ong/[id]/PainelAcoes.tsx</code></td><td class="num-col">339</td><td>As quatro ações do dia a dia, em abas</td></tr>
+<tr><td><code>src/app/(ong)/animais-ong/[id]/editar/page.tsx</code></td><td class="num-col">52</td><td>Edição — o slug não muda junto com o nome</td></tr>
+<tr><td><code>src/app/(ong)/animais-ong/[id]/page.tsx</code></td><td class="num-col">362</td><td>Ficha completa: custo, padrinhos, saúde, diário, despesas</td></tr>
+<tr><td><code>src/app/(ong)/animais-ong/actions.ts</code></td><td class="num-col">379</td><td>Criar, editar, evento de diário, atualização e foto</td></tr>
+<tr><td><code>src/app/(ong)/animais-ong/novo/page.tsx</code></td><td class="num-col">21</td><td>Cadastro de animal</td></tr>
+<tr><td><code>src/app/(ong)/animais-ong/page.tsx</code></td><td class="num-col">204</td><td>Grade de animais com busca e cinco filtros</td></tr>
+<tr><td><code>src/app/(ong)/apadrinhamentos/Acoes.tsx</code></td><td class="num-col">76</td><td>Pausar com um clique; cancelar exige motivo</td></tr>
+<tr><td><code>src/app/(ong)/apadrinhamentos/actions.ts</code></td><td class="num-col">121</td><td>Mudança de status e alteração de valor, com auditoria</td></tr>
+<tr><td><code>src/app/(ong)/apadrinhamentos/page.tsx</code></td><td class="num-col">138</td><td>Receita recorrente, ticket médio e a lista por status</td></tr>
+<tr><td><code>src/app/(ong)/campanhas-ong/Formularios.tsx</code></td><td class="num-col">136</td><td>Nova campanha e as transições de status</td></tr>
+<tr><td><code>src/app/(ong)/campanhas-ong/actions.ts</code></td><td class="num-col">110</td><td>criarCampanha() e mudarStatusCampanha()</td></tr>
+<tr><td><code>src/app/(ong)/campanhas-ong/page.tsx</code></td><td class="num-col">129</td><td>Criação e ciclo de vida das campanhas</td></tr>
+<tr><td><code>src/app/(ong)/configuracoes/Formularios.tsx</code></td><td class="num-col">242</td><td>Quatro formulários da configuração</td></tr>
+<tr><td><code>src/app/(ong)/configuracoes/actions.ts</code></td><td class="num-col">166</td><td>Configuração, usuários e veterinários</td></tr>
+<tr><td><code>src/app/(ong)/configuracoes/page.tsx</code></td><td class="num-col">130</td><td>Dados da ONG, acessos, veterinários e auditoria</td></tr>
+<tr><td><code>src/app/(ong)/financeiro/Painel.tsx</code></td><td class="num-col">219</td><td>Confirmar pagamento, rotina mensal e lançamento de despesa</td></tr>
+<tr><td><code>src/app/(ong)/financeiro/actions.ts</code></td><td class="num-col">233</td><td>Confirmação, geração idempotente e lançamento com comprovante</td></tr>
+<tr><td><code>src/app/(ong)/financeiro/page.tsx</code></td><td class="num-col">279</td><td>Entradas, saídas, gráficos e a rotina do mês</td></tr>
+<tr><td><code>src/app/(ong)/ia/Chat.tsx</code></td><td class="num-col">174</td><td>Conversa com seis perguntas prontas e botão de copiar</td></tr>
+<tr><td><code>src/app/(ong)/ia/page.tsx</code></td><td class="num-col">22</td><td>Tela do assistente; degrada sem chave</td></tr>
+<tr><td><code>src/app/(ong)/layout.tsx</code></td><td class="num-col">37</td><td>Moldura da administração, com menu por papel</td></tr>
+<tr><td><code>src/app/(ong)/padrinhos/[id]/page.tsx</code></td><td class="num-col">227</td><td>Ficha: cadastro, contribuição, conquistas e histórico</td></tr>
+<tr><td><code>src/app/(ong)/padrinhos/page.tsx</code></td><td class="num-col">129</td><td>Lista com busca e receita recorrente</td></tr>
+<tr><td><code>src/app/(ong)/painel/page.tsx</code></td><td class="num-col">299</td><td>Dez indicadores, alertas acionáveis, quatro gráficos e agenda</td></tr>
+<tr><td><code>src/app/(ong)/relatorios/page.tsx</code></td><td class="num-col">191</td><td>Cobertura, inadimplência, retenção e descobertos</td></tr>
+<tr><td><code>src/app/(ong)/saude/actions.ts</code></td><td class="num-col">141</td><td>registrarSaude(): despesa, peso, castração e diário</td></tr>
+<tr><td><code>src/app/(ong)/saude/page.tsx</code></td><td class="num-col">189</td><td>Histórico, agenda de 30 dias e concentração de custo</td></tr>
+</tbody></table>
+<h4>API</h4>
+<table class="longa"><thead><tr><th style="width:38%">Arquivo</th><th style="width:8%" class="num-col">Linhas</th><th>Papel</th></tr></thead><tbody>
+<tr><td><code>src/app/api/comprovante/[id]/route.ts</code></td><td class="num-col">41</td><td>Comprovante: público ou só para a equipe; 404 quando nega</td></tr>
+<tr><td><code>src/app/api/foto/[id]/route.ts</code></td><td class="num-col">30</td><td>Foto e vídeo do animal, público, com cache imutável</td></tr>
+<tr><td><code>src/app/api/health/route.ts</code></td><td class="num-col">19</td><td>Healthcheck que bate no banco</td></tr>
+<tr><td><code>src/app/api/ia/route.ts</code></td><td class="num-col">35</td><td>Recebe o histórico e devolve a resposta do modelo</td></tr>
+</tbody></table>
+<h4>Raiz e configuração</h4>
+<table class="longa"><thead><tr><th style="width:38%">Arquivo</th><th style="width:8%" class="num-col">Linhas</th><th>Papel</th></tr></thead><tbody>
+<tr><td><code>.env.example</code></td><td class="num-col">51</td><td>Modelo de configuração, comentado</td></tr>
+<tr><td><code>Dockerfile</code></td><td class="num-col">63</td><td>Build em três estágios; runner enxuto e não-root</td></tr>
+<tr><td><code>README.md</code></td><td class="num-col">154</td><td>Visão geral, decisões e como rodar</td></tr>
+<tr><td><code>docker-compose.yml</code></td><td class="num-col">66</td><td>Serviço, volume e a rede com subnet fixa</td></tr>
+<tr><td><code>docker-entrypoint.sh</code></td><td class="num-col">21</td><td>Migrações, GRANTs e semente — nessa ordem, com o papel dono</td></tr>
+<tr><td><code>docs/OPERACAO.md</code></td><td class="num-col">103</td><td>Notas de quem mantém isto rodando</td></tr>
+<tr><td><code>next.config.mjs</code></td><td class="num-col">40</td><td>Saída standalone, cabeçalhos e indexação seletiva</td></tr>
+<tr><td><code>src/app/globals.css</code></td><td class="num-col">123</td><td>Oito classes de componente e a regra de prefers-reduced-motion</td></tr>
+<tr><td><code>src/app/layout.tsx</code></td><td class="num-col">33</td><td>Layout raiz: metadados, viewport, ícones</td></tr>
+<tr><td><code>tailwind.config.ts</code></td><td class="num-col">117</td><td>Paleta amostrada da logo, curvas e animações</td></tr>
+</tbody></table>
+<h4>Utilitários</h4>
+<table class="longa"><thead><tr><th style="width:38%">Arquivo</th><th style="width:8%" class="num-col">Linhas</th><th>Papel</th></tr></thead><tbody>
+<tr><td><code>scripts/criar-usuario.ts</code></td><td class="num-col">55</td><td>Cria ou redefine acesso pela linha de comando; reativa a conta junto</td></tr>
+</tbody></table>
+
+<h2 id="ap-comandos"><span class="num">B</span>Comandos</h2>
+
+<h3 id="ap-cmd-docker"><span class="num">B.1</span>Container</h3>
+<figure class="codigo"><pre><code>docker compose build              <span style="color:#7fa0a0"># reconstruir a imagem</span>
+docker compose up -d              <span style="color:#7fa0a0"># subir ou recriar</span>
+docker compose logs -f app        <span style="color:#7fa0a0"># acompanhar</span>
+docker compose ps                 <span style="color:#7fa0a0"># estado e saúde</span>
+docker compose down               <span style="color:#7fa0a0"># parar (o volume permanece)</span></code></pre></figure>
+
+<h3 id="ap-cmd-dev"><span class="num">B.2</span>Desenvolvimento</h3>
+<figure class="codigo"><pre><code>npm run dev           <span style="color:#7fa0a0"># servidor de desenvolvimento</span>
+npm run typecheck     <span style="color:#7fa0a0"># tsc --noEmit</span>
+npm run build         <span style="color:#7fa0a0"># prisma generate + next build</span>
+npm run db:seed       <span style="color:#7fa0a0"># semente (respeita as salvaguardas)</span></code></pre></figure>
+
+<h3 id="ap-cmd-prisma"><span class="num">B.3</span>Banco</h3>
+<figure class="codigo"><pre><code>npm run prisma:migrate           <span style="color:#7fa0a0"># criar migração em desenvolvimento</span>
+npm run prisma:deploy            <span style="color:#7fa0a0"># aplicar migrações pendentes</span>
+npx prisma studio                <span style="color:#7fa0a0"># inspecionar dados</span>
+npx prisma migrate diff --from-empty \
+  --to-schema-datamodel prisma/schema.prisma --script   <span style="color:#7fa0a0"># SQL do schema inteiro</span></code></pre></figure>
+
+<h3 id="ap-cmd-emerg"><span class="num">B.4</span>Emergência</h3>
+<figure class="codigo"><pre><code>docker compose exec app node_modules/.bin/tsx scripts/criar-usuario.ts \
+  "Nome da Pessoa" email@ong.com.br senhaSegura ADMIN
+
+curl -s localhost:1046/api/health          <span style="color:#7fa0a0"># o banco responde?</span>
+ufw status | grep 172.16.61                <span style="color:#7fa0a0"># o firewall está liberado?</span>
+docker compose exec app printenv DATABASE_URL</code></pre></figure>
+
+<h2 id="ap-limites"><span class="num">C</span>Limitações conhecidas e próximos passos</h2>
+
+<p>Nada aqui é bug: são fronteiras conscientes do que foi construído. A ordem é
+de prioridade sugerida.</p>
+
+<table class="longa">
+<thead><tr><th style="width:28%">Item</th><th style="width:12%">Impacto</th><th>Situação e caminho</th></tr></thead>
+<tbody>
+<tr><td><strong>Envio real de notificação</strong></td><td>Alto</td>
+<td>As notificações são gravadas e aparecem na área do padrinho, mas ninguém recebe e-mail. Como quem acompanha renova, este é o item que mais afeta a receita recorrente. Caminho: provedor transacional, domínio verificado e um worker que consome as notificações não enviadas.</td></tr>
+<tr><td><strong>Conciliação de pagamento</strong></td><td>Alto</td>
+<td>A confirmação é manual, uma a uma. Com PIX via API do banco ou um provedor de recorrência, a confirmação passaria a ser automática — e o campo <code>referencia</code> já existe na tabela justamente para a conciliação.</td></tr>
+<tr><td><strong>Geração mensal por agendador</strong></td><td>Médio</td>
+<td>Hoje é um botão. A ação já é idempotente, então basta um cron chamando-a — a parte difícil já está feita.</td></tr>
+<tr><td><strong>Rate limit nas rotas públicas de escrita</strong></td><td>Médio</td>
+<td>Apadrinhar, doar e manifestar interesse não têm limite por IP. A contenção natural é o Cloudflare, que já está no caminho da requisição.</td></tr>
+<tr><td><strong>Compressão de imagem no upload</strong></td><td>Médio</td>
+<td>A foto é gravada como veio, até 25 MB. Uma foto de celular moderno pesa 6 MB e é servida assim para quem abre no 4G. Caminho: <code>sharp</code> no servidor, gerando duas versões.</td></tr>
+<tr><td><strong>Testes automatizados</strong></td><td>Médio</td>
+<td><code>vitest</code> está configurado, mas não há suíte. Os candidatos naturais são as funções puras de <code>src/server/custos.ts</code> (o rateio, sobretudo, pelo arredondamento) e <code>src/lib/format.ts</code>.</td></tr>
+<tr><td><strong>Exclusão de foto pela interface</strong></td><td>Baixo</td>
+<td>Upload e definição de capa existem; remover exige acesso ao banco. <code>apagar()</code> já está em <code>storage.ts</code>.</td></tr>
+<tr><td><strong>Recuperação de senha</strong></td><td>Baixo</td>
+<td>Depende do envio de e-mail. Hoje o caminho é o admin redefinir pela tela de configurações ou pelo script.</td></tr>
+<tr><td><strong>Exportação de relatório</strong></td><td>Baixo</td>
+<td>Os relatórios são de tela. Um PDF de prestação de contas mensal para enviar a parceiros seria o próximo uso — e a página de impacto já tem todo o conteúdo.</td></tr>
+<tr><td><strong>Paginação</strong></td><td>Baixo</td>
+<td>A vitrine carrega todos os animais ativos e o financeiro traz 120 lançamentos. Na escala atual é instantâneo; acima de uns 500 animais, vale paginar.</td></tr>
+</tbody>
+</table>
+
+<h2 id="ap-glossario"><span class="num">D</span>Glossário</h2>
+
+<table class="longa">
+<thead><tr><th style="width:26%">Termo</th><th>Significado neste sistema</th></tr></thead>
+<tbody>
+<tr><td><strong>Apadrinhamento</strong></td><td>Vínculo recorrente entre um padrinho e um animal, com valor mensal. Pode ser pausado, cancelado e retomado.</td></tr>
+<tr><td><strong>Competência</strong></td><td>O mês que uma contribuição cobre, sempre representado pelo dia 1º. Diferente da data de pagamento.</td></tr>
+<tr><td><strong>Contribuição</strong></td><td>Qualquer entrada de dinheiro: mensalidade, doação avulsa ou aporte de campanha.</td></tr>
+<tr><td><strong>Cobertura</strong></td><td>Percentual do custo mensal estimado de um animal que já está coberto por apadrinhamentos ativos.</td></tr>
+<tr><td><strong>Custo estimado</strong></td><td>Alimentação + tratamento + medicamento, definidos pela equipe. É a meta pública, não o gasto real.</td></tr>
+<tr><td><strong>Descoberto</strong></td><td>A diferença entre o custo estimado e o apoio mensal — o quanto “falta” para o animal.</td></tr>
+<tr><td><strong>Diário</strong></td><td>A biografia pública do animal, em linha do tempo. Distinto da atualização, que é a carta ao padrinho.</td></tr>
+<tr><td><strong>Modalidade</strong></td><td>Faixa de apadrinhamento: alimentação (R$ 30), cuidados (R$ 50), completo (R$ 100) ou personalizado.</td></tr>
+<tr><td><strong>Rateio</strong></td><td>A divisão do valor pago por um padrinho entre as categorias de gasto daquele animal, no mês.</td></tr>
+<tr><td><strong>Retenção</strong></td><td>Saldo entre apadrinhamentos novos e cancelados no período. O indicador de longo prazo mais importante.</td></tr>
+<tr><td><strong>Semente</strong></td><td>O script que popula o banco com dados fictícios, com trava contra sobrescrever dado real.</td></tr>
+<tr><td><strong>Slug</strong></td><td>O endereço público do animal ou da campanha. Estável: não muda quando o nome muda.</td></tr>
+<tr><td><strong>Server Action</strong></td><td>Função de servidor chamada diretamente por um formulário, sem endpoint REST. Onde vivem todas as mutações.</td></tr>
+<tr><td><strong>Server Component</strong></td><td>Componente React que roda só no servidor, consulta o banco e transmite HTML. O padrão neste sistema.</td></tr>
+</tbody>
+</table>
+
+<div class="nota" style="margin-top:8mm">
+  <span class="rotulo">Sobre este documento</span>
+  <p>Os trechos de código aqui não foram digitados à mão: são extraídos do
+  código-fonte por um script no momento da geração. Se o código mudar e o
+  documento for gerado de novo, os trechos acompanham. As contagens de linhas,
+  arquivos e registros também vêm de medições reais feitas na geração, não de
+  estimativas.</p>
+</div>
+</section>

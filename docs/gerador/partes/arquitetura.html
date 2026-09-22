@@ -1,0 +1,226 @@
+<section class="pagina">
+<h1 class="titulo-parte"><span class="parte">Parte II</span>Arquitetura</h1>
+
+<h2 id="arq-visao"><span class="num">3</span>Visão geral</h2>
+
+<p>É uma aplicação monolítica de servidor. Um container, um banco, um volume de
+mídia. Não há microsserviço, fila, cache distribuído nem API separada do
+front-end — e nada disso faz falta na escala real do problema: uma ONG com
+noventa animais e cento e cinquenta padrinhos.</p>
+
+<figure class="diagrama">
+<svg viewBox="0 0 700 300" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, sans-serif">
+  <defs>
+    <marker id="s2" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 z" fill="#556360"/>
+    </marker>
+  </defs>
+
+  <rect x="2" y="2" width="696" height="66" rx="8" fill="#f0f7f6" stroke="#d9ecea"/>
+  <text x="14" y="20" fill="#1a4f50" font-size="9" font-weight="700" letter-spacing="1">QUEM ACESSA</text>
+  <rect x="16"  y="28" width="150" height="30" rx="6" fill="#fff" stroke="#b4d8d5"/>
+  <text x="91"  y="47" text-anchor="middle" fill="#0a292b" font-size="11">Visitante (celular)</text>
+  <rect x="182" y="28" width="150" height="30" rx="6" fill="#fff" stroke="#b4d8d5"/>
+  <text x="257" y="47" text-anchor="middle" fill="#0a292b" font-size="11">Padrinho</text>
+  <rect x="348" y="28" width="150" height="30" rx="6" fill="#fff" stroke="#b4d8d5"/>
+  <text x="423" y="47" text-anchor="middle" fill="#0a292b" font-size="11">Equipe da ONG</text>
+  <rect x="514" y="28" width="170" height="30" rx="6" fill="#fff" stroke="#b4d8d5"/>
+  <text x="599" y="47" text-anchor="middle" fill="#0a292b" font-size="11">WhatsApp / Instagram</text>
+
+  <line x1="350" y1="70" x2="350" y2="88" stroke="#556360" stroke-width="1.3" marker-end="url(#s2)"/>
+  <rect x="200" y="90" width="300" height="26" rx="6" fill="#ed9216"/>
+  <text x="350" y="108" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">Cloudflare Tunnel → localhost:1046</text>
+
+  <line x1="350" y1="118" x2="350" y2="134" stroke="#556360" stroke-width="1.3" marker-end="url(#s2)"/>
+
+  <rect x="60" y="136" width="580" height="104" rx="8" fill="#0a292b"/>
+  <text x="74" y="154" fill="#9fc0be" font-size="9" font-weight="700" letter-spacing="1">CONTAINER meuaumigo-app · rede 172.16.61.0/24</text>
+  <rect x="74"  y="162" width="168" height="30" rx="5" fill="#1f6362"/>
+  <text x="158" y="181" text-anchor="middle" fill="#fff" font-size="10.5">Server Components</text>
+  <rect x="250" y="162" width="168" height="30" rx="5" fill="#1f6362"/>
+  <text x="334" y="181" text-anchor="middle" fill="#fff" font-size="10.5">Server Actions</text>
+  <rect x="426" y="162" width="200" height="30" rx="5" fill="#1f6362"/>
+  <text x="526" y="181" text-anchor="middle" fill="#fff" font-size="10.5">Route Handlers (/api)</text>
+  <rect x="74"  y="200" width="344" height="28" rx="5" fill="#143d3f"/>
+  <text x="246" y="218" text-anchor="middle" fill="#a9cbc9" font-size="10.5">src/server · regras de negócio</text>
+  <rect x="426" y="200" width="200" height="28" rx="5" fill="#143d3f"/>
+  <text x="526" y="218" text-anchor="middle" fill="#a9cbc9" font-size="10.5">Prisma Client</text>
+
+  <line x1="200" y1="242" x2="200" y2="258" stroke="#556360" stroke-width="1.3" marker-end="url(#s2)"/>
+  <line x1="500" y1="242" x2="500" y2="258" stroke="#556360" stroke-width="1.3" marker-end="url(#s2)"/>
+
+  <rect x="60"  y="260" width="280" height="34" rx="6" fill="#fff" stroke="#1a4f50" stroke-width="1.2"/>
+  <text x="200" y="275" text-anchor="middle" fill="#0a292b" font-size="10.5" font-weight="700">PostgreSQL no HOST · porta 5432</text>
+  <text x="200" y="288" text-anchor="middle" fill="#556360" font-size="8.5">host.docker.internal · dois papéis</text>
+
+  <rect x="360" y="260" width="280" height="34" rx="6" fill="#fff" stroke="#1a4f50" stroke-width="1.2"/>
+  <text x="500" y="275" text-anchor="middle" fill="#0a292b" font-size="10.5" font-weight="700">Volume meuaumigo_midia</text>
+  <text x="500" y="288" text-anchor="middle" fill="#556360" font-size="8.5">fotos, vídeos e comprovantes</text>
+
+  <rect x="648" y="136" width="46" height="104" rx="6" fill="#fff8ec" stroke="#ffd893"/>
+  <text x="671" y="176" text-anchor="middle" fill="#a85a0d" font-size="9" font-weight="700" transform="rotate(90 671 176)">API Claude</text>
+  <line x1="630" y1="188" x2="646" y2="188" stroke="#a85a0d" stroke-width="1.2" stroke-dasharray="3 2" marker-end="url(#s2)"/>
+</svg>
+<figcaption>O PostgreSQL vive fora do Docker, no host da VPS. A chamada à API da Claude é tracejada porque é opcional: sem ela, tudo o mais continua funcionando.</figcaption>
+</figure>
+
+<div class="nota">
+  <span class="rotulo">Por que o banco fica fora do Docker</span>
+  <p>O servidor já mantém um PostgreSQL único no host, compartilhado com outras
+  aplicações e com backup centralizado. Subir mais um Postgres dentro do
+  compose significaria mais uma rotina de backup para esquecer. O custo dessa
+  escolha é a configuração de rede descrita na seção 31.</p>
+</div>
+
+<h2 id="arq-stack"><span class="num">4</span>Stack e a razão de cada escolha</h2>
+
+<table class="longa">
+<thead><tr><th style="width:21%">Tecnologia</th><th style="width:11%">Versão</th><th>Papel e motivo</th></tr></thead>
+<tbody>
+<tr><td><strong>Next.js</strong> (App Router)</td><td>15.5</td><td>Renderização no servidor com Server Components e mutações por Server Actions. A escolha central: a maior parte das telas é leitura de banco formatada em HTML, e isso não precisa de uma API REST no meio nem de JavaScript no celular do visitante.</td></tr>
+<tr><td><strong>React</strong></td><td>19.3</td><td>Server Components e <code>useActionState</code>, que dá estado de envio e erro de formulário sem nenhuma biblioteca de formulário.</td></tr>
+<tr><td><strong>TypeScript</strong></td><td>5.8, <code>strict</code></td><td>Os tipos do Prisma atravessam o sistema inteiro até o JSX. Renomear um campo do schema quebra o build, não a produção.</td></tr>
+<tr><td><strong>Prisma</strong></td><td>6.19</td><td>ORM e ferramenta de migração. O <code>groupBy</code> tipado é usado à exaustão nos relatórios.</td></tr>
+<tr><td><strong>PostgreSQL</strong></td><td>host da VPS</td><td><code>Decimal</code> real para dinheiro, índices compostos e dois papéis de acesso com privilégios distintos.</td></tr>
+<tr><td><strong>Tailwind CSS</strong></td><td>3.4</td><td>Paleta derivada da logo em <code>tailwind.config.ts</code> e oito classes de componente em <code>globals.css</code>. Sem CSS-in-JS: o estilo não precisa de tempo de execução.</td></tr>
+<tr><td><strong>@node-rs/argon2</strong></td><td>2.0</td><td>Argon2id nativo para hash de senha. Parâmetros: 19 MiB de memória, 2 iterações, paralelismo 1.</td></tr>
+<tr><td><strong>Zod</strong></td><td>3.25</td><td>Valida as variáveis de ambiente no boot e toda entrada de Server Action. Nenhum <code>FormData</code> chega ao banco sem passar por um schema.</td></tr>
+<tr><td><strong>@anthropic-ai/sdk</strong></td><td>0.68</td><td>Assistente interno. Dependência opcional em tempo de execução.</td></tr>
+<tr><td><strong>Docker</strong> + Compose</td><td>—</td><td>Build multi-estágio, saída <code>standalone</code> do Next, rede com subnet fixa.</td></tr>
+</tbody>
+</table>
+
+<h3 id="arq-sem"><span class="num">4.1</span>O que foi deixado de fora, de propósito</h3>
+
+<table>
+<thead><tr><th style="width:30%">Ausência</th><th>Razão</th></tr></thead>
+<tbody>
+<tr><td><strong>Biblioteca de gráficos</strong></td><td>São quatro formas — barras agrupadas, linha, rosca e medidor. Qualquer pacote do mercado traria dezenas de kB de JavaScript para o celular de quem só quer ver quanto entrou no mês. Os gráficos são SVG escritos à mão, em ~500 linhas (seção 28).</td></tr>
+<tr><td><strong>Biblioteca de ícones</strong></td><td>São 23 ícones. Um pacote com mil traria mil. Ficam em <code>src/components/Icones.tsx</code>, todos com traço 1,8 — o mesmo peso do texto em negrito ao lado deles.</td></tr>
+<tr><td><strong>Fonte externa</strong></td><td>O build não pode depender de rede, e a página pública do animal é aberta a partir de um link do WhatsApp, quase sempre em 4G ruim. A pilha de fontes é a do sistema.</td></tr>
+<tr><td><strong>Gerenciador de estado</strong></td><td>O estado mora no banco. Os 18 componentes de cliente usam <code>useState</code> para abrir uma aba ou marcar um filtro — nada que justifique Redux, Zustand ou equivalente.</td></tr>
+<tr><td><strong>Biblioteca de formulário</strong></td><td><code>useActionState</code> com Server Action cobre envio, estado de carregamento e erro. Um formulário que funciona sem JavaScript é melhor do que um validado no cliente.</td></tr>
+</tbody>
+</table>
+
+<h2 id="arq-estrutura"><span class="num">5</span>Estrutura de diretórios</h2>
+
+<pre class="arvore">meuaumigo/
+├── <span class="d">prisma/</span>
+│   ├── schema.prisma            <span class="c">20 modelos, 20 enums, 728 linhas</span>
+│   ├── seed.ts                  <span class="c">semente de demonstração (12 meses fictícios)</span>
+│   ├── migrations/0001_init/    <span class="c">SQL gerado, versionado</span>
+│   └── sql/grants.sql           <span class="c">privilégios do papel da aplicação</span>
+├── <span class="d">scripts/</span>
+│   └── criar-usuario.ts         <span class="c">destranca o acesso pela linha de comando</span>
+├── <span class="d">src/lib/</span>                     <span class="c">infraestrutura — não conhece regra de negócio</span>
+│   ├── env.ts                   <span class="c">ambiente tipado; derruba o boot se faltar segredo</span>
+│   ├── db.ts                    <span class="c">Prisma Client único</span>
+│   ├── crypto.ts                <span class="c">argon2 e token de sessão</span>
+│   ├── auth.ts                  <span class="c">sessão, papéis, CSRF, auditoria</span>
+│   ├── storage.ts               <span class="c">mídia em disco; nome de arquivo sempre gerado aqui</span>
+│   ├── format.ts                <span class="c">dinheiro, datas, idade e rótulos dos enums</span>
+│   ├── paleta.ts                <span class="c">cores dos gráficos (fora do módulo de cliente)</span>
+│   └── slug.ts                  <span class="c">endereço público do animal</span>
+├── <span class="d">src/server/</span>                  <span class="c">regras de negócio — só roda no servidor</span>
+│   ├── periodo.ts               <span class="c">competência mensal</span>
+│   ├── custos.ts                <span class="c">custo, cobertura e o rateio da contribuição</span>
+│   ├── painel.ts                <span class="c">agregados do painel e do impacto</span>
+│   ├── publico.ts               <span class="c">vitrine e perfil público</span>
+│   ├── padrinho.ts              <span class="c">a área do padrinho</span>
+│   ├── relatorios.ts            <span class="c">retenção, cobrança, concentração de custo</span>
+│   ├── transparencia.ts         <span class="c">prestação de contas pública</span>
+│   ├── gamificacao.ts           <span class="c">conquistas derivadas</span>
+│   ├── config.ts                <span class="c">configuração da ONG, memoizada por requisição</span>
+│   └── ia/                      <span class="c">contexto.ts + assistente.ts</span>
+├── <span class="d">src/components/</span>              <span class="c">10 componentes compartilhados</span>
+│   ├── ui.tsx                   <span class="c">Cartao, Indicador, BarraMeta, Tabela, Aviso…</span>
+│   ├── Graficos.tsx             <span class="c">'use client' — SVG e camada de hover</span>
+│   ├── Icones.tsx               <span class="c">23 ícones</span>
+│   ├── FotoAnimal.tsx           <span class="c">foto real ou retrato gerado</span>
+│   ├── CartaoAnimal.tsx         <span class="c">o cartão da vitrine</span>
+│   ├── Navegacao.tsx            <span class="c">lateral no desktop, tira rolável no celular</span>
+│   ├── Compartilhar.tsx         <span class="c">navigator.share com queda para WhatsApp</span>
+│   ├── Link.tsx                 <span class="c">fio de progresso na navegação</span>
+│   ├── Marca.tsx                <span class="c">logo</span>
+│   └── BarraUsuario.tsx         <span class="c">identidade e sair</span>
+└── <span class="d">src/app/</span>
+    ├── (publico)/               <span class="c">15 arquivos · 2.368 linhas</span>
+    ├── (auth)/entrar/           <span class="c">login</span>
+    ├── (padrinho)/              <span class="c">5 arquivos · 824 linhas</span>
+    ├── (ong)/                   <span class="c">34 arquivos · 5.899 linhas</span>
+    └── api/                     <span class="c">4 route handlers</span></pre>
+
+<h3 id="arq-camadas"><span class="num">5.1</span>A regra de dependência</h3>
+
+<p>As camadas só olham para baixo. <code>app/</code> chama <code>server/</code>,
+que chama <code>lib/</code>, que fala com o banco e o disco. Nada em
+<code>lib/</code> importa de <code>server/</code>, e nada em
+<code>server/</code> importa de <code>app/</code>.</p>
+
+<p>Há uma consequência prática disso que já cobrou seu preço durante o
+desenvolvimento e vale registrar:</p>
+
+<div class="atencao">
+  <span class="rotulo">Armadilha: constante exportada de módulo de cliente</span>
+  <p>A paleta dos gráficos morava dentro de <code>Graficos.tsx</code>, que é
+  <code>'use client'</code>. Tudo que um módulo de cliente exporta vira
+  <em>referência de cliente</em> — inclusive uma função pura como
+  <code>corDaCategoria()</code>. Quando a página de impacto (servidora) tentou
+  chamá-la durante o render, o Next devolveu
+  <code>Attempted to call corDaCategoria() from the server</code> e a rota caiu
+  com 500. A correção foi mover a paleta para
+  <code>src/lib/paleta.ts</code>, sem diretiva: <strong>cor é dado, não
+  componente</strong>. Vale a regra geral — constante compartilhada entre
+  servidor e cliente nunca deve morar em arquivo marcado como cliente.</p>
+</div>
+
+<h2 id="arq-ciclo"><span class="num">6</span>Ciclo de vida de uma requisição</h2>
+
+<h3 id="arq-ciclo-leitura"><span class="num">6.1</span>Leitura — abrir uma página</h3>
+
+<p>Exemplo: um visitante abre <code>/animais/thor</code> a partir de um link
+recebido no WhatsApp.</p>
+
+<ol>
+<li>O Next casa a rota com <code>(publico)/animais/[slug]/page.tsx</code>.</li>
+<li><code>generateMetadata()</code> roda primeiro e monta as tags Open Graph —
+título, descrição e imagem de capa. É o que o WhatsApp lê para montar o preview;
+sem imagem, o link vira um retângulo cinza que ninguém abre.</li>
+<li>O componente servidor chama <code>carregarPerfilPublico(slug)</code> em
+<code>src/server/publico.ts</code>, que faz <strong>uma</strong> consulta com
+<code>include</code> aninhado para animal, fotos, apadrinhamentos ativos, diário,
+atualizações públicas e campanhas, e mais três contagens em paralelo.</li>
+<li><code>calcularCusto()</code> deriva a cobertura da meta a partir dos
+apadrinhamentos ativos já carregados — sem ida adicional ao banco.</li>
+<li>O HTML é transmitido. O único JavaScript enviado ao navegador é o do botão
+de compartilhar. A página inteira funciona com o JavaScript desligado.</li>
+</ol>
+
+<h3 id="arq-ciclo-escrita"><span class="num">6.2</span>Escrita — enviar um formulário</h3>
+
+<p>Exemplo: a mesma pessoa confirma o apadrinhamento do Thor.</p>
+
+<ol>
+<li>O <code>&lt;form action={acao}&gt;</code> envia o <code>FormData</code> para
+a Server Action <code>apadrinhar()</code>. Funciona sem JavaScript; com
+JavaScript, <code>useActionState</code> acrescenta o estado de envio.</li>
+<li>A ação chama <code>conferirMesmaOrigem()</code> — defesa de CSRF que
+complementa o <code>SameSite</code> do cookie (seção 21).</li>
+<li>Um schema Zod valida e normaliza tudo. Nada de <code>FormData</code> cru
+alcança o banco.</li>
+<li>Regras de negócio: o padrinho é criado ou reaproveitado pelo e-mail, e a
+ação recusa o pedido se já houver apadrinhamento ativo daquela pessoa para aquele
+animal.</li>
+<li>Uma transação grava o apadrinhamento, a primeira mensalidade pendente, o
+evento de diário — se for o primeiro padrinho do animal — e a notificação.</li>
+<li>A auditoria é registrada fora da transação: ela não pode derrubar a operação,
+mas também não pode falhar em silêncio.</li>
+<li>A ação devolve um estado tipado; a tela troca o formulário pela confirmação
+com a chave PIX.</li>
+</ol>
+
+<p>Doze arquivos <code>actions.ts</code> seguem essa mesma sequência. Quando
+houver dúvida sobre onde acrescentar uma regra, é essa ordem que ela deve
+respeitar: origem, validação, regra, transação, auditoria, revalidação.</p>
+</section>

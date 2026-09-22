@@ -1,0 +1,122 @@
+<section class="pagina">
+<h1 class="titulo-parte"><span class="parte">Parte VIII</span>Infraestrutura</h1>
+
+<h2 id="inf-dockerfile"><span class="num">30</span>A imagem</h2>
+
+<p>Build em três estágios. O <code>deps</code> instala dependências, o
+<code>builder</code> gera o cliente Prisma e compila o Next, e o
+<code>runner</code> sai enxuto:</p>
+
+{{cod:dockerfile-runner|docker|Dockerfile — estágio runner}}
+
+<p>Pontos de atenção:</p>
+
+<ul>
+<li><strong>Usuário não-root.</strong> O processo roda como <code>aumigo</code>
+(uid 1001), e o volume de mídia é criado já com o dono correto.</li>
+<li><strong><code>openssl</code> é obrigatório</strong>: o engine do Prisma não
+sobe sem ele. <code>wget</code> existe só para o healthcheck do compose.</li>
+<li><strong>O <code>node_modules</code> completo é copiado</strong>, apesar da
+saída <code>standalone</code> do Next. É proposital: o entrypoint roda
+<code>prisma migrate deploy</code>, executa o <code>grants.sql</code> e chama a
+semente com <code>tsx</code> — nada disso está no bundle da aplicação.</li>
+<li><strong>Valor fictício de <code>DATABASE_URL</code> no build.</strong> O
+estágio de compilação só precisa que o Prisma gere o cliente; nada ali alcança
+banco de verdade.</li>
+</ul>
+
+<h2 id="inf-compose"><span class="num">31</span>Compose e a rede</h2>
+
+<p>Um serviço, um volume, uma rede. A parte que mais causa incidente nesta VPS é
+a rede:</p>
+
+{{cod:compose-rede|yaml|docker-compose.yml — a rede}}
+
+<div class="atencao">
+  <span class="rotulo">Por que a subnet é fixa</span>
+  <p>O PostgreSQL roda no host, atrás do <code>ufw</code>. Para o container
+  alcançá-lo, existe uma regra que libera a porta 5432 <strong>para aquela faixa
+  de IP</strong>. Se a subnet não for fixada no compose, o Docker sorteia outra
+  faixa ao recriar a rede e a regra para de valer — silenciosamente, e só na
+  próxima recriação. O sintoma é <code>P1001: Can't reach database server</code>
+  num container que subiu sem erro aparente.</p>
+</div>
+
+<p>A regra correspondente, no host:</p>
+
+<figure class="codigo"><pre><code>ufw allow from 172.16.61.0/24 to any port 5432 proto tcp comment 'meuaumigo docker network'</code></pre></figure>
+
+<p>Outros pontos do compose:</p>
+
+<table>
+<thead><tr><th style="width:30%">Configuração</th><th>Razão</th></tr></thead>
+<tbody>
+<tr><td><code>extra_hosts: host.docker.internal:host-gateway</code></td><td>É assim que o container resolve o endereço do host. De dentro do container, o banco <strong>nunca</strong> é <code>localhost</code>.</td></tr>
+<tr><td><code>TZ: America/Sao_Paulo</code></td><td>A imagem base roda em UTC. Sem isso, competência, data de resgate e “arrecadado este mês” saem três horas adiantados — e no dia 1º isso muda o mês inteiro de lugar.</td></tr>
+<tr><td><code>healthcheck</code> em <code>/api/health</code></td><td>Bate no banco de propósito: um container que responde 200 sem conseguir ler o Postgres está “no ar” e inútil — e é justamente esse o modo de falha desta máquina.</td></tr>
+<tr><td><code>volumes: midia:/app/storage</code></td><td>Fotos, vídeos e comprovantes. Entra na rotina de backup com a mesma prioridade do banco: a foto do animal é metade da captação.</td></tr>
+<tr><td><code>logging</code> com rotação</td><td>10 MB por arquivo, 3 arquivos. Container sem limite de log enche disco compartilhado.</td></tr>
+</tbody>
+</table>
+
+<h2 id="inf-entrypoint"><span class="num">32</span>Entrypoint</h2>
+
+{{cod:entrypoint|bash|docker-entrypoint.sh}}
+
+<p>Três passos, nesta ordem, e todos com o papel <strong>dono</strong>:
+migrações, privilégios e semente. A semente falha sem derrubar o boot — ela é
+conveniência, não requisito.</p>
+
+<p>Reaplicar os GRANTs a cada subida é intencional: garante que tabela criada por
+migração futura já nasça acessível à aplicação, e desfaz qualquer afrouxamento
+feito à mão no banco.</p>
+
+<h2 id="inf-env"><span class="num">33</span>Variáveis de ambiente</h2>
+
+<p>Todas passam por um schema Zod no boot. Segredo ausente derruba o processo na
+partida, em vez de falhar no meio de um apadrinhamento — que é o momento exato em
+que ninguém tenta de novo.</p>
+
+{{cod:env|ts|src/lib/env.ts — o schema do ambiente}}
+
+<table class="longa">
+<thead><tr><th style="width:27%">Variável</th><th style="width:13%">Obrigatória</th><th>Descrição</th></tr></thead>
+<tbody>
+<tr><td><code>NODE_ENV</code></td><td>não</td><td><code>production</code> no container. Afeta log do Prisma e o <code>Secure</code> do cookie.</td></tr>
+<tr><td><code>APP_PORT</code></td><td>não</td><td>Porta publicada no host. Padrão 1046. Lida pelo compose, não pela aplicação.</td></tr>
+<tr><td><code>APP_URL</code></td><td>não</td><td>URL pública. Usada nas tags Open Graph, nos textos de compartilhamento e na checagem de origem. <strong>Precisa ser ajustada quando o domínio for definido.</strong></td></tr>
+<tr><td><code>DATABASE_URL</code></td><td><strong>sim</strong></td><td>Conexão da aplicação, com o papel <code>meuaumigo_app</code>. Host sempre <code>host.docker.internal</code>.</td></tr>
+<tr><td><code>DATABASE_URL_OWNER</code></td><td>sim*</td><td>Conexão do dono do schema. Usada apenas pelo entrypoint. Se ausente, o entrypoint cai para a anterior — e as migrações falham, como devem.</td></tr>
+<tr><td><code>STORAGE_DIR</code></td><td>não</td><td>Raiz da mídia. Padrão <code>/app/storage</code>, montado como volume.</td></tr>
+<tr><td><code>SESSAO_HORAS</code></td><td>não</td><td>Validade da sessão, entre 1 e 72. Padrão 12.</td></tr>
+<tr><td><code>ANTHROPIC_API_KEY</code></td><td>não</td><td>Habilita a tela de IA. Ausente, a tela informa e o resto segue.</td></tr>
+<tr><td><code>MODELO_IA</code></td><td>não</td><td>Padrão <code>claude-sonnet-5</code>.</td></tr>
+<tr><td><code>SEMEAR_DEMONSTRACAO</code></td><td>não</td><td><code>true</code> popula o banco vazio com dados fictícios. <strong>Virar para <code>false</code> quando o primeiro dado real entrar.</strong></td></tr>
+</tbody>
+</table>
+
+<h2 id="inf-headers"><span class="num">34</span>Cabeçalhos e indexação</h2>
+
+<p>Em <code>next.config.mjs</code>, dois conjuntos de cabeçalhos com propósitos
+opostos:</p>
+
+<ul>
+<li><strong>Para todas as rotas</strong>: <code>X-Content-Type-Options:
+nosniff</code>, <code>Referrer-Policy: strict-origin-when-cross-origin</code> e
+<code>Permissions-Policy</code> negando câmera, geolocalização e microfone — o
+sistema não usa nenhum dos três.</li>
+<li><strong>Só para a área logada</strong>: <code>X-Robots-Tag: noindex,
+nofollow</code>. Note que as páginas públicas dos animais <em>não</em> recebem
+essa marcação, e isso é deliberado — é de busca orgânica que vem padrinho
+novo.</li>
+</ul>
+
+<p>Não há <code>X-Frame-Options: DENY</code> global, ao contrário de outros
+sistemas desta VPS: a página do animal precisa poder ser embutida por
+agregadores e parceiros. A área logada está protegida pelo <code>SameSite</code>
+do cookie de sessão.</p>
+
+<p>O otimizador de imagem do Next está desligado (<code>images.unoptimized</code>):
+as fotos vêm do próprio endpoint da aplicação, já com cache imutável, e passar
+por um otimizador acrescentaria processamento sem ganho.</p>
+</section>
