@@ -9,6 +9,25 @@
 # ==========================================================
 
 services:
+  db:
+    image: postgres:16-alpine
+    container_name: meuaumigo-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-meuaumigo}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-meuaumigo_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-meuaumigo}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - meuaumigo-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-meuaumigo} -d ${POSTGRES_DB:-meuaumigo}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   app:
     build:
       context: .
@@ -16,6 +35,9 @@ services:
     image: meuaumigo:latest
     container_name: meuaumigo-app
     restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
     env_file:
       - .env
     environment:
@@ -23,6 +45,7 @@ services:
       PORT: 3000
       HOSTNAME: 0.0.0.0
       STORAGE_DIR: /app/storage
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-meuaumigo}:${POSTGRES_PASSWORD:-meuaumigo_pass}@db:5432/${POSTGRES_DB:-meuaumigo}?schema=public"
       # A imagem base fica em UTC. Sem isto, a data do resgate, a
       # competência da mensalidade e o "arrecadado este mês" saem 3 horas
       # adiantados — e no dia 1 isso muda o mês inteiro de lugar.
@@ -52,6 +75,8 @@ services:
 
 volumes:
   midia:
+    driver: local
+  pgdata:
     driver: local
 
 networks:

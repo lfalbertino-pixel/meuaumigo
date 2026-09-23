@@ -1,0 +1,3 @@
+CREATE ROLE meuaumigo_owner WITH LOGIN PASSWORD 'meuaumigo2026' SUPERUSER;
+CREATE ROLE meuaumigo_app WITH LOGIN PASSWORD 'meuaumigo2026';
+GRANT ALL PRIVILEGES ON DATABASE meuaumigo TO meuaumigo_owner;
